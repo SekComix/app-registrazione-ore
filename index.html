@@ -36,7 +36,7 @@
         h4 { border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 20px;}
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
-        input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: a border-box; font-size: 16px; }
         .time-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: center; }
         .time-input-wrapper { position: relative; display: flex; align-items: center; }
         .clear-time-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background-color: #e9ecef; color: #495057; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; font-weight: bold; cursor: pointer; display: none; line-height: 24px; text-align: center; }
@@ -50,17 +50,23 @@
         .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
         #summary-total { font-size: 1.2em; font-weight: bold; color: var(--success-color); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
         #interventions-list .intervention-item {
-            display: flex; justify-content: space-between; align-items: center; padding: 15px;
+            display: flex; justify-content: flex-start; align-items: flex-start; padding: 15px;
             border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px;
             animation: fadeIn 0.5s ease-out;
         }
         .intervention-item .info { flex-grow: 1; }
-        .intervention-item .info span { display: block; }
-        .intervention-item .info .client { font-weight: bold; }
-        .intervention-item .actions button { width: auto; padding: 8px 12px; margin-left: 5px; font-size: 14px; }
+        .intervention-item .info span { display: block; margin-bottom: 5px; }
+        .intervention-item .info .client { font-weight: bold; font-size: 1.1em; }
+        .intervention-item .info .details { font-size: 0.9em; color: #6c757d; }
+        .intervention-item .info .details b { color: #495057; }
+        
+        .intervention-item .actions { display: flex; flex-direction: column; }
+        .intervention-item .actions button { width: auto; padding: 8px 12px; margin-left: 10px; font-size: 14px; margin-bottom: 5px; }
         .btn-secondary { background-color: var(--secondary-color); color: white; }
         .btn-danger { background-color: var(--danger-color); color: white; }
+        
         #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; }
         #toast.show { transform: translate(-50%, 0); }
         #toast.success { background-color: var(--success-color); }
@@ -127,12 +133,8 @@
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('Service Worker registrato con successo. Scope:', registration.scope);
-      })
-      .catch(error => {
-        console.log('Registrazione Service Worker fallita:', error);
-      });
+      .then(registration => { console.log('Service Worker registrato con successo:', registration.scope); })
+      .catch(error => { console.log('Registrazione Service Worker fallita:', error); });
   });
 }
 
@@ -158,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const employeeNameInput = document.getElementById('employee-name');
     const summaryTotalSpan = document.getElementById('summary-total');
     let dailyInterventions = [];
+
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         let startTime = new Date(`1970-01-01T${start}:00`);
@@ -167,12 +170,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const diff = (endTime - startTime) / 60000;
         return diff >= 0 ? diff : 0;
     };
+
     const formatMinutes = (totalMinutes) => {
         if (totalMinutes <= 0) return '0h 0min';
         const hours = Math.floor(totalMinutes / 60);
         const minutes = Math.round(totalMinutes % 60);
         return `${hours}h ${minutes}min`;
     };
+    
     const updateTotals = () => {
         const minutesAM = calculateMinutes(startAM.value, endAM.value);
         const minutesPM = calculateMinutes(startPM.value, endPM.value);
@@ -180,7 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
         subtotalPMSpan.textContent = formatMinutes(minutesPM);
         totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
     };
+
     [startAM, endAM, startPM, endPM].forEach(el => el.addEventListener('input', updateTotals));
+
     document.querySelectorAll('.clear-time-btn').forEach(button => {
         button.addEventListener('click', (event) => {
             event.preventDefault();
@@ -188,11 +195,14 @@ document.addEventListener('DOMContentLoaded', () => {
             updateTotals();
         });
     });
+
     const showToast = (message, type = 'success') => {
         toast.textContent = message;
         toast.className = `show ${type}`;
         setTimeout(() => { toast.className = ''; }, 3000);
     };
+
+    // === NUOVO: Funzione renderInterventions con riepilogo dettagliato ===
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
         let totalMinutesSummary = 0;
@@ -201,15 +211,36 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             dailyInterventions.forEach(interv => {
                 totalMinutesSummary += interv.totalMinutes;
+                
+                // Funzione helper per troncare il testo se è troppo lungo
+                const truncate = (text, length) => text && text.length > length ? text.substring(0, length) + '...' : text;
+
+                // Costruisce la stringa degli orari solo se presenti
+                let timeString = '';
+                if (interv.startAM && interv.endAM) timeString += `M: ${interv.startAM}-${interv.endAM}`;
+                if (interv.startPM && interv.endPM) timeString += `${timeString ? ', ' : ''}P: ${interv.startPM}-${interv.endPM}`;
+                
                 const item = document.createElement('div');
                 item.className = 'intervention-item';
-                item.innerHTML = `<div class="info"><span class="client">${interv.client}</span><span>${interv.totalHours}</span></div><div class="actions"><button class="btn-secondary" data-id="${interv.id}">Modifica</button><button class="btn-danger" data-id="${interv.id}">Elimina</button></div>`;
+                item.innerHTML = `
+                    <div class="info">
+                        <span class="client">${interv.client}</span>
+                        <span class="details"><b>Ore:</b> ${interv.totalHours} (${timeString || 'N/D'})</span>
+                        <span class="details"><b>Lavoro:</b> ${truncate(interv.workDone, 40) || 'N/D'}</span>
+                        <span class="details"><b>Materiali:</b> ${truncate(interv.materials, 40) || 'N/D'}</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-secondary" data-id="${interv.id}">Modifica</button>
+                        <button class="btn-danger" data-id="${interv.id}">Elimina</button>
+                    </div>`;
                 interventionsList.appendChild(item);
             });
         }
         summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
         saveToLocalStorage();
     };
+    // ======================================================================
+
     const resetForm = () => {
         clientInput.value = '';
         startAM.value = ''; endAM.value = '';
@@ -220,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addBtn.textContent = 'Aggiungi Intervento alla Giornata';
         updateTotals();
     };
+
     addBtn.addEventListener('click', () => {
         if (!clientInput.value || !dateInput.value) { return showToast('Cliente e Data sono obbligatori!', 'error'); }
         const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
@@ -247,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderInterventions();
         resetForm();
     });
+
     interventionsList.addEventListener('click', (e) => {
         const id = e.target.dataset.id;
         if (!id) return;
@@ -272,16 +305,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
     const saveToLocalStorage = () => {
         localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions));
         localStorage.setItem('employeeName', employeeNameInput.value);
     };
+
     const loadFromLocalStorage = () => {
         const savedName = localStorage.getItem('employeeName');
         if (savedName) employeeNameInput.value = savedName;
         const data = localStorage.getItem('dailyInterventions');
         if (data) dailyInterventions = JSON.parse(data);
     };
+    
     generateBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = employeeNameInput.value.trim();
@@ -329,6 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
             XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
         }
     });
+
     dateInput.value = new Date().toISOString().slice(0, 10);
     loadFromLocalStorage();
     renderInterventions();
