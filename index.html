@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Report Interventi</title>
     
-    <!-- Meta Tags per la Web App (PWA) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#007bff">
@@ -14,7 +13,6 @@
     <link rel="apple-touch-icon" href="icon.svg">
     
     <style>
-        /* Stili per un'interfaccia pulita e moderna */
         :root {
             --primary-color: #007bff;
             --secondary-color: #6c757d;
@@ -29,137 +27,52 @@
             margin: 0;
             padding: 15px;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .logo-container {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .logo-container img {
-            width: 80px; /* Imposta la larghezza della tua lampadina */
-            height: auto;
-        }
-        .logo-container h1 {
-            color: var(--primary-color);
-            margin: 5px 0 20px 0;
-            font-size: 1.5em;
-        }
-        .card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
-        }
-        h2 {
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 10px;
-            margin-top: 0;
-        }
+        .container { max-width: 800px; margin: 0 auto; }
+        .logo-container { text-align: center; margin-bottom: 20px; }
+        .logo-container img { width: 80px; height: auto; border-radius: 15px; }
+        .logo-container h1 { color: var(--primary-color); margin: 5px 0 20px 0; font-size: 1.5em; }
+        .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        h2 { color: var(--primary-color); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-        .time-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            align-items: center;
-        }
-        .subtotal {
-            text-align: right;
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-        #total-hours {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: var(--success-color);
-            text-align: center;
-            margin: 20px 0;
-        }
-        button {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-        }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .time-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: center; }
+        .subtotal { text-align: right; font-weight: bold; font-size: 1.1em; grid-column: 1 / -1; }
+        #total-hours { font-size: 1.5em; font-weight: bold; color: var(--success-color); text-align: center; margin: 20px 0; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
         button:active { transform: scale(0.98); }
         .btn-primary { background-color: var(--primary-color); color: white; }
         .btn-success { background-color: var(--success-color); color: white; }
-        
-        /* Stili per la lista degli interventi */
-        #interventions-list .intervention-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
+        #interventions-list .intervention-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; }
         .intervention-item .info { flex-grow: 1; }
         .intervention-item .info span { display: block; }
         .intervention-item .info .client { font-weight: bold; }
-        .intervention-item .actions button {
-            width: auto;
-            padding: 8px 12px;
-            margin-left: 5px;
-            font-size: 14px;
-        }
+        .intervention-item .actions button { width: auto; padding: 8px 12px; margin-left: 5px; font-size: 14px; }
         .btn-secondary { background-color: var(--secondary-color); color: white; }
         .btn-danger { background-color: var(--danger-color); color: white; }
-
-        /* Notifica Toast */
-        #toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translate(-50%, 150%);
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            color: white;
-            z-index: 1000;
-            transition: transform 0.4s ease-in-out;
-            font-weight: bold;
-        }
+        #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; }
         #toast.show { transform: translate(-50%, 0); }
         #toast.success { background-color: var(--success-color); }
         #toast.error { background-color: var(--danger-color); }
     </style>
-    <!-- Librerie per PDF ed Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
-<div class="logo-container">
-    <img src="icon.svg" alt="Logo AM Impianti Elettrici" style="border-radius: 15px;">
-    <h1>AM Impianti Elettrici di Maselli Andrea</h1>
-</div>
+<div class="container">
+    <div class="logo-container">
+        <img src="icon.svg" alt="Logo AM Impianti Elettrici">
+        <h1>AM Impianti Elettrici di Maselli Andrea</h1>
+    </div>
 
-    <!-- CARD PER L'INSERIMENTO DI UN NUOVO INTERVENTO -->
     <div class="card" id="form-card">
-       <div class="form-group">
-    <label for="employee-name">Il Tuo Nome</label>
-    <input type="text" id="employee-name" placeholder="Es. Mario Rossi">
-</div>
+        <h2 id="form-title">Nuovo Intervento</h2>
         <input type="hidden" id="intervention-id">
-        
+        <div class="form-group">
+            <label for="employee-name">Il Tuo Nome</label>
+            <input type="text" id="employee-name" placeholder="Es. Mario Rossi">
+        </div>
         <div class="form-group">
             <label for="date">Data</label>
             <input type="date" id="date">
@@ -168,60 +81,29 @@
             <label for="client">Cliente</label>
             <input type="text" id="client" placeholder="Nome del cliente">
         </div>
-        
         <h4>Mattino</h4>
         <div class="time-section">
-            <div>
-                <label for="start-am">Ora Inizio</label>
-                <input type="time" id="start-am">
-            </div>
-            <div>
-                <label for="end-am">Ora Fine</label>
-                <input type="time" id="end-am">
-            </div>
-            <div class="subtotal" colspan="2">Subtotale: <span id="subtotal-am">0h 0min</span></div>
+            <div><label for="start-am">Ora Inizio</label><input type="time" id="start-am"></div>
+            <div><label for="end-am">Ora Fine</label><input type="time" id="end-am"></div>
+            <div class="subtotal">Subtotale: <span id="subtotal-am">0h 0min</span></div>
         </div>
-
         <h4>Pomeriggio</h4>
         <div class="time-section">
-            <div>
-                <label for="start-pm">Ora Inizio</label>
-                <input type="time" id="start-pm">
-            </div>
-            <div>
-                <label for="end-pm">Ora Fine</label>
-                <input type="time" id="end-pm">
-            </div>
-            <div class="subtotal" colspan="2">Subtotale: <span id="subtotal-pm">0h 0min</span></div>
+            <div><label for="start-pm">Ora Inizio</label><input type="time" id="start-pm"></div>
+            <div><label for="end-pm">Ora Fine</label><input type="time" id="end-pm"></div>
+            <div class="subtotal">Subtotale: <span id="subtotal-pm">0h 0min</span></div>
         </div>
-
         <div id="total-hours">Totale Ore: 0h 0min</div>
-
-        <div class="form-group">
-            <label for="work-done">Lavoro Svolto</label>
-            <textarea id="work-done" rows="4"></textarea>
-        </div>
-        <div class="form-group">
-            <label for="materials">Materiali</label>
-            <textarea id="materials" rows="2"></textarea>
-        </div>
-        <div class="form-group">
-            <label for="notes">Note</label>
-            <textarea id="notes" rows="2"></textarea>
-        </div>
-
+        <div class="form-group"><label for="work-done">Lavoro Svolto</label><textarea id="work-done" rows="4"></textarea></div>
+        <div class="form-group"><label for="materials">Materiali</label><textarea id="materials" rows="2"></textarea></div>
+        <div class="form-group"><label for="notes">Note</label><textarea id="notes" rows="2"></textarea></div>
         <button id="add-intervention-btn" class="btn-primary">Aggiungi Intervento alla Giornata</button>
     </div>
 
-    <!-- CARD PER IL RIEPILOGO DEGLI INTERVENTI DELLA GIORNATA -->
     <div class="card" id="summary-card">
         <h2>Riepilogo Giornata</h2>
-        <div id="interventions-list">
-            <!-- Qui verranno aggiunti dinamicamente gli interventi -->
-        </div>
-        <div class="form-group" style="margin-top: 20px;">
-            <button id="generate-report-btn" class="btn-success">Invia e Salva Report</button>
-        </div>
+        <div id="interventions-list"></div>
+        <div class="form-group" style="margin-top: 20px;"><button id="generate-report-btn" class="btn-success">Invia e Salva Report</button></div>
     </div>
 </div>
 
@@ -229,7 +111,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Riferimenti agli elementi del DOM
     const dateInput = document.getElementById('date');
     const clientInput = document.getElementById('client');
     const startAM = document.getElementById('start-am');
@@ -244,102 +125,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const generateBtn = document.getElementById('generate-report-btn');
     const formTitle = document.getElementById('form-title');
     const interventionIdInput = document.getElementById('intervention-id');
-    const employeeNameInput = document.getElementById('employee-name');
-    
-    // Riferimenti ai totali
+    const toast = document.getElementById('toast');
     const subtotalAMSpan = document.getElementById('subtotal-am');
     const subtotalPMSpan = document.getElementById('subtotal-pm');
-    // (Inizia da qui)
-const totalHoursSpan = document.getElementById('total-hours');
+    const totalHoursSpan = document.getElementById('total-hours');
+    const employeeNameInput = document.getElementById('employee-name');
 
-// Array per memorizzare gli interventi della giornata
-let dailyInterventions = [];
-
-// Funzione per calcolare i minuti tra due orari
-const calculateMinutes = (start, end) => {
-    if (!start || !end) return 0;
-    const startTime = new Date(`1970-01-01T${start}`);
-    const endTime = new Date(`1970-01-01T${end}`);
-    return (endTime - startTime) / (1000 * 60);
-};
-
-// Funzione per formattare i minuti in ore e minuti
-const formatMinutes = (totalMinutes) => {
-    if (totalMinutes < 0) totalMinutes = 0;
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${hours}h ${minutes}min`;
-};
-
-// (Inizia da qui)
-const totalHoursSpan = document.getElementById('total-hours');
-
-// Array per memorizzare gli interventi della giornata
-let dailyInterventions = [];
-
-// Funzione per calcolare i minuti tra due orari
-const calculateMinutes = (start, end) => {
-    if (!start || !end) return 0;
-    const startTime = new Date(`1970-01-01T${start}`);
-    const endTime = new Date(`1970-01-01T${end}`);
-    return (endTime - startTime) / (1000 * 60);
-};
-
-// (Inizia da qui)
-const subtotalAMSpan = document.getElementById('subtotal-am');
-const subtotalPMSpan = document.getElementById('subtotal-pm');
-const totalHoursSpan = document.getElementById('total-hours');
-const employeeNameInput = document.getElementById('employee-name');
-
-// Array per memorizzare gli interventi della giornata
-let dailyInterventions = [];
-
-// Funzione per calcolare i minuti tra due orari
-const calculateMinutes = (start, end) => {
-    if (!start || !end) return 0;
-    const startTime = new Date(`1970-01-01T${start}:00`);
-    const endTime = new Date(`1970-01-01T${end}:00`);
-    if (isNaN(startTime) || isNaN(endTime) || endTime < startTime) return 0;
-    return (endTime - startTime) / (1000 * 60);
-};
-
-// Funzione per formattare i minuti in ore e minuti
-const formatMinutes = (totalMinutes) => {
-    if (totalMinutes <= 0) return '0h 0min';
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = Math.round(totalMinutes % 60);
-    return `${hours}h ${minutes}min`;
-};
-
-// Funzione per aggiornare i totali in tempo reale
-const updateTotals = () => {
-    const minutesAM = calculateMinutes(startAM.value, endAM.value);
-    const minutesPM = calculateMinutes(startPM.value, endPM.value);
-    subtotalAMSpan.textContent = formatMinutes(minutesAM);
-    subtotalPMSpan.textContent = formatMinutes(minutesPM);
-    totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
-};
-// (Finisce qui)
-    // Array per memorizzare gli interventi della giornata
     let dailyInterventions = [];
 
-    // Funzione per calcolare i minuti tra due orari
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
-        const startTime = new Date(`1970-01-01T${start}`);
-        const endTime = new Date(`1970-01-01T${end}`);
-        return (endTime - startTime) / (1000 * 60);
+        const startTime = new Date(`1970-01-01T${start}:00`);
+        const endTime = new Date(`1970-01-01T${end}:00`);
+        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime()) || endTime < startTime) return 0;
+        return (endTime - startTime) / 60000;
     };
 
-    // Funzione per formattare i minuti in ore e minuti
     const formatMinutes = (totalMinutes) => {
-        if (totalMinutes < 0) totalMinutes = 0;
+        if (totalMinutes <= 0) return '0h 0min';
         const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
+        const minutes = Math.round(totalMinutes % 60);
         return `${hours}h ${minutes}min`;
     };
 
-    // Funzione per aggiornare i totali in tempo reale
     const updateTotals = () => {
         const minutesAM = calculateMinutes(startAM.value, endAM.value);
         const minutesPM = calculateMinutes(startPM.value, endPM.value);
@@ -348,17 +156,14 @@ const updateTotals = () => {
         totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
     };
 
-    // Aggiungi event listener per l'aggiornamento automatico
     [startAM, endAM, startPM, endPM].forEach(el => el.addEventListener('input', updateTotals));
 
-    // Funzione per mostrare le notifiche
     const showToast = (message, type = 'success') => {
         toast.textContent = message;
         toast.className = `show ${type}`;
         setTimeout(() => { toast.className = ''; }, 3000);
     };
 
-    // Funzione per renderizzare la lista degli interventi
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
         if (dailyInterventions.length === 0) {
@@ -368,22 +173,12 @@ const updateTotals = () => {
         dailyInterventions.forEach(interv => {
             const item = document.createElement('div');
             item.className = 'intervention-item';
-            item.innerHTML = `
-                <div class="info">
-                    <span class="client">${interv.client}</span>
-                    <span>${interv.totalHours}</span>
-                </div>
-                <div class="actions">
-                    <button class="btn-secondary" data-id="${interv.id}">Modifica</button>
-                    <button class="btn-danger" data-id="${interv.id}">Elimina</button>
-                </div>
-            `;
+            item.innerHTML = `<div class="info"><span class="client">${interv.client}</span><span>${interv.totalHours}</span></div><div class="actions"><button class="btn-secondary" data-id="${interv.id}">Modifica</button><button class="btn-danger" data-id="${interv.id}">Elimina</button></div>`;
             interventionsList.appendChild(item);
         });
         saveToLocalStorage();
     };
 
-    // Funzione per resettare il form
     const resetForm = () => {
         clientInput.value = '';
         startAM.value = ''; endAM.value = '';
@@ -395,24 +190,18 @@ const updateTotals = () => {
         updateTotals();
     };
 
-    // Aggiungere o modificare un intervento
     addBtn.addEventListener('click', () => {
         if (!clientInput.value || !dateInput.value) {
             showToast('Cliente e Data sono obbligatori!', 'error');
             return;
         }
-        
-        const minutesAM = calculateMinutes(startAM.value, endAM.value);
-        const minutesPM = calculateMinutes(startPM.value, endPM.value);
-        const totalMinutes = minutesAM + minutesPM;
-        
+        const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
         if (totalMinutes <= 0) {
             showToast('Inserire almeno un intervallo di ore valido.', 'error');
             return;
         }
-
         const intervention = {
-            id: interventionIdInput.value || Date.now(), // Usa ID esistente o ne crea uno nuovo
+            id: interventionIdInput.value || Date.now(),
             date: dateInput.value,
             client: clientInput.value,
             startAM: startAM.value, endAM: endAM.value,
@@ -423,32 +212,26 @@ const updateTotals = () => {
             materials: materialsInput.value,
             notes: notesInput.value
         };
-
         const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
         if (existingIndex > -1) {
-            // Modifica
             dailyInterventions[existingIndex] = intervention;
             showToast('Intervento modificato!');
         } else {
-            // Aggiunta
             dailyInterventions.push(intervention);
             showToast('Intervento aggiunto!');
         }
-        
         renderInterventions();
         resetForm();
     });
 
-    // Gestione pulsanti Modifica ed Elimina
     interventionsList.addEventListener('click', (e) => {
         const id = e.target.dataset.id;
         if (!id) return;
-
-        if (e.target.classList.contains('btn-danger')) { // Elimina
+        if (e.target.classList.contains('btn-danger')) {
             dailyInterventions = dailyInterventions.filter(i => i.id != id);
             renderInterventions();
             showToast('Intervento eliminato.', 'error');
-        } else if (e.target.classList.contains('btn-secondary')) { // Modifica
+        } else if (e.target.classList.contains('btn-secondary')) {
             const interv = dailyInterventions.find(i => i.id == id);
             if (interv) {
                 formTitle.textContent = 'Modifica Intervento';
@@ -462,128 +245,84 @@ const updateTotals = () => {
                 materialsInput.value = interv.materials;
                 notesInput.value = interv.notes;
                 updateTotals();
-                window.scrollTo(0, 0); // Torna in cima alla pagina per modificare
+                window.scrollTo(0, 0);
             }
         }
     });
 
-    // Funzione per salvare i dati nel localStorage
     const saveToLocalStorage = () => {
         localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions));
+        localStorage.setItem('employeeName', employeeNameInput.value);
     };
 
-   // Funzione per caricare i dati dal localStorage
     const loadFromLocalStorage = () => {
-    const savedName = localStorage.getItem('employeeName');
-    if (savedName) {
-        employeeNameInput.value = savedName;
-    }
-    const data = localStorage.getItem('dailyInterventions');
-    if (data) {
-        dailyInterventions = JSON.parse(data);
-        renderInterventions();
-    }
-};
-    
-    // --- FUNZIONALITÀ DI GENERAZIONE REPORT ---
-generateBtn.addEventListener('click', async () => {
-    if (dailyInterventions.length === 0) {
-        showToast('Nessun intervento da inviare.', 'error');
-        return;
-    }
+        const savedName = localStorage.getItem('employeeName');
+        if (savedName) employeeNameInput.value = savedName;
+        const data = localStorage.getItem('dailyInterventions');
+        if (data) dailyInterventions = JSON.parse(data);
+    };
 
-    const employeeName = employeeNameInput.value.trim();
-    if (!employeeName) {
-        showToast('Per favore, inserisci il tuo nome.', 'error');
-        return;
-    }
-    // Salva il nome per le prossime volte
-    localStorage.setItem('employeeName', employeeName);
+    generateBtn.addEventListener('click', async () => {
+        if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
+        const employeeName = employeeNameInput.value.trim();
+        if (!employeeName) return showToast('Per favore, inserisci il tuo nome.', 'error');
+        
+        const reportDate = dailyInterventions[0].date;
+        const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}`;
 
-    const reportDate = dailyInterventions[0].date;
-    const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}`;
-
-    // 1. GENERA PDF
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    let yPos = 15;
-    doc.setFontSize(18);
-    doc.text(`Report Interventi del ${reportDate}`, 105, yPos, { align: 'center' });
-    yPos += 8;
-    doc.setFontSize(12);
-    doc.text(`Operatore: ${employeeName}`, 105, yPos, { align: 'center' });
-    yPos += 15;
-
-    dailyInterventions.forEach(interv => {
-        doc.setFontSize(14);
-        doc.text(`Cliente: ${interv.client}`, 14, yPos);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        let yPos = 15;
+        doc.setFontSize(18);
+        doc.text(`Report Interventi del ${reportDate}`, 105, yPos, { align: 'center' });
         yPos += 8;
-        doc.setFontSize(10);
-        doc.text(`Totale Ore: ${interv.totalHours}`, 14, yPos);
-        yPos += 6;
-        doc.text(`Lavoro Svolto: ${interv.workDone || 'N/D'}`, 14, yPos, { maxWidth: 180 });
+        doc.setFontSize(12);
+        doc.text(`Operatore: ${employeeName}`, 105, yPos, { align: 'center' });
         yPos += 15;
-        doc.text(`Materiali: ${interv.materials || 'N/D'}`, 14, yPos, { maxWidth: 180 });
-        yPos += 15;
-        doc.line(14, yPos, 196, yPos);
-        yPos += 10;
+        dailyInterventions.forEach(interv => {
+            doc.setFontSize(14); doc.text(`Cliente: ${interv.client}`, 14, yPos); yPos += 8;
+            doc.setFontSize(10); doc.text(`Totale Ore: ${interv.totalHours}`, 14, yPos); yPos += 6;
+            doc.text(`Lavoro Svolto: ${interv.workDone || 'N/D'}`, 14, yPos, { maxWidth: 180 }); yPos += 15;
+            doc.text(`Materiali: ${interv.materials || 'N/D'}`, 14, yPos, { maxWidth: 180 }); yPos += 15;
+            doc.line(14, yPos, 196, yPos); yPos += 10;
+        });
+        const pdfBlob = doc.output('blob');
+
+        const excelData = dailyInterventions.map(i => ({ Operatore: employeeName, Data: i.date, Cliente: i.client, Inizio_Mattino: i.startAM, Fine_Mattino: i.endAM, Inizio_Pomeriggio: i.startPM, Fine_Pomeriggio: i.endPM, Ore_Totali: i.totalHours, Lavoro_Svolto: i.workDone, Materiali: i.materials, Note: i.notes }));
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Interventi");
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const excelBlob = new Blob([wbout], { type: 'application/octet-stream' });
+        
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = pdfUrl; a.download = `${fileNameBase}.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(pdfUrl);
+        showToast('PDF salvato nei Download!');
+
+        const pdfFile = new File([pdfBlob], `${fileNameBase}.pdf`, { type: 'application/pdf' });
+        const excelFile = new File([excelBlob], `${fileName-base}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile, excelFile] })) {
+            try {
+                await navigator.share({ files: [pdfFile, excelFile], title: `Report Interventi ${reportDate} - ${employeeName}`, text: `In allegato il report interventi del ${reportDate} compilato da ${employeeName}.`});
+                if (confirm("Report inviato. Vuoi cancellare la lista degli interventi per oggi?")) {
+                    dailyInterventions = [];
+                    localStorage.removeItem('dailyInterventions');
+                    renderInterventions();
+                }
+            } catch (error) { showToast('Condivisione annullata.', 'error'); }
+        } else {
+            showToast('Browser non supporta condivisione file. Salva i file e allegali.', 'error');
+            XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
+        }
     });
-    const pdfBlob = doc.output('blob');
-    
-    // 2. GENERA EXCEL
-    const excelData = dailyInterventions.map(i => ({
-        Operatore: employeeName,
-        Data: i.date,
-        Cliente: i.client,
-        Inizio_Mattino: i.startAM,
-        Fine_Mattino: i.endAM,
-        Inizio_Pomeriggio: i.startPM,
-        Fine_Pomeriggio: i.endPM,
-        Ore_Totali: i.totalHours,
-        Lavoro_Svolto: i.workDone,
-        Materiali: i.materials,
-        Note: i.notes
-    }));
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Interventi");
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const excelBlob = new Blob([wbout], { type: 'application/octet-stream' });
-    
-    // 3. SALVA PDF SUL DISPOSITIVO
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    const a = document.createElement('a');
-    a.href = pdfUrl;
-    a.download = `${fileNameBase}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(pdfUrl);
-    showToast('PDF salvato nei Download!');
 
-    // 4. INVIA EMAIL CON ALLEGATI
-    const pdfFile = new File([pdfBlob], `${fileNameBase}.pdf`, { type: 'application/pdf' });
-    const excelFile = new File([excelBlob], `${fileNameBase}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-    if (navigator.canShare && navigator.canShare({ files: [pdfFile, excelFile] })) {
-        try {
-            await navigator.share({
-                files: [pdfFile, excelFile],
-                title: `Report Interventi ${reportDate} - ${employeeName}`,
-                text: `In allegato il report interventi del ${reportDate} compilato da ${employeeName}.`
-            });
-            if(confirm("Report inviato. Vuoi cancellare la lista degli interventi per oggi?")) {
-                dailyInterventions = [];
-                localStorage.removeItem('dailyInterventions');
-                renderInterventions();
-            }
-        } catch (error) { showToast('Condivisione annullata.', 'error'); }
-    } else {
-        showToast('Browser non supporta condivisione file. Salva i file e allegali.', 'error');
-         XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
-    }
+    dateInput.value = new Date().toISOString().slice(0, 10);
+    loadFromLocalStorage();
+    renderInterventions();
 });
 </script>
-
 </body>
 </html>
