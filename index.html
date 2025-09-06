@@ -36,9 +36,9 @@
         h4 { border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 20px;}
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
-        input, textarea, select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; background-color: #fff; }
         
-        input.error, textarea.error {
+        input.error, textarea.error, select.error {
             border: 2px solid var(--danger-color);
             background-color: #fff0f0;
         }
@@ -55,7 +55,6 @@
         .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-secondary { background-color: var(--secondary-color); color: white; }
 
-        /* Stili per la sezione Materiali */
         #materials-container .material-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
         .material-qty { flex: 1.5; }
         .material-unit { flex: 2; }
@@ -63,18 +62,25 @@
         .remove-material-btn { flex-shrink: 0; width: 40px; height: 40px; padding: 0; font-size: 20px; }
         #add-material-btn { width: auto; padding: 10px 15px; font-size: 14px; margin-top: 10px; }
         
-        /* Stili Riepilogo e Card (invariati per ora) */
         .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
         #summary-total { font-size: 1.2em; font-weight: bold; color: var(--success-color); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        #interventions-list .intervention-item { display: flex; justify-content: flex-start; align-items: flex-start; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; animation: fadeIn 0.5s ease-out; }
+        
+        #interventions-list .intervention-item {
+            padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; animation: fadeIn 0.5s ease-out; cursor: pointer;
+        }
+        .intervention-item .summary-view { display: flex; justify-content: space-between; align-items: center; }
         .intervention-item .info { flex-grow: 1; }
         .intervention-item .info span { display: block; margin-bottom: 5px; word-break: break-word; }
         .intervention-item .info .client { font-weight: bold; font-size: 1.1em; }
         .intervention-item .info .details { font-size: 0.9em; color: #6c757d; }
         .intervention-item .info .details b { color: #495057; }
-        .intervention-item .actions { display: flex; flex-direction: column; align-items: flex-end; }
-        .intervention-item .actions button { width: auto; padding: 8px 12px; margin-left: 10px; font-size: 14px; margin-bottom: 5px; }
+        .intervention-item .full-details { display: none; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px; }
+        .intervention-item .full-details p { margin: 0 0 10px 0; white-space: pre-wrap; word-break: break-word; }
+        .intervention-item.expanded .full-details { display: block; }
+        .intervention-item.expanded .details { display: none; }
+        .intervention-item .actions { display: flex; flex-direction: column; align-items: flex-end; padding-left: 10px; }
+        .intervention-item .actions button { width: auto; padding: 8px 12px; font-size: 14px; margin-bottom: 5px; }
 
         #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; }
         #toast.show { transform: translate(-50%, 0); }
@@ -111,15 +117,9 @@
         </div>
         <div id="total-hours">Totale Ore: 0h 0min</div>
         <div class="form-group"><label for="work-done">Lavoro Svolto</label><textarea id="work-done" rows="4"></textarea></div>
-        
-        <!-- === NUOVA SEZIONE MATERIALI === -->
         <h4>Materiali Utilizzati</h4>
-        <div id="materials-container">
-            <!-- Righe materiali verranno aggiunte qui dinamicamente -->
-        </div>
+        <div id="materials-container"></div>
         <button id="add-material-btn" class="btn-secondary">+</button>
-        <!-- ============================== -->
-
         <div class="form-group"><label for="notes">Note</label><textarea id="notes" rows="2"></textarea></div>
         <button id="add-intervention-btn" class="btn-primary">Aggiungi Rapporto</button>
     </div>
@@ -155,121 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const materialsContainer = document.getElementById('materials-container');
     const addMaterialBtn = document.getElementById('add-material-btn');
     const addBtn = document.getElementById('add-intervention-btn');
-    // ... (altri riferimenti al DOM) ...
-    
-    // Lista delle Unità di Misura
-    const unitsOfMeasure = ["PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
-
-    // Gestione Materiali
-    const addMaterialRow = (qty = '', unit = 'PZ', desc = '') => {
-        const row = document.createElement('div');
-        row.className = 'material-row';
-        
-        const unitOptions = unitsOfMeasure.map(u => `<option value="${u}" ${u === unit ? 'selected' : ''}>${u}</option>`).join('');
-
-        row.innerHTML = `
-            <input type="number" class="material-qty" placeholder="Qtà" value="${qty}">
-            <select class="material-unit">${unitOptions}</select>
-            <input type="text" class="material-desc" placeholder="Descrizione articolo" value="${desc}">
-            <button class="btn-danger remove-material-btn">-</button>
-        `;
-        materialsContainer.appendChild(row);
-    };
-    addMaterialBtn.addEventListener('click', (e) => { e.preventDefault(); addMaterialRow(); });
-    materialsContainer.addEventListener('click', (e) => {
-        if (e.target.classList.contains('remove-material-btn')) {
-            e.preventDefault();
-            if (materialsContainer.children.length > 1) {
-                e.target.parentElement.remove();
-            } else {
-                e.target.parentElement.querySelector('.material-qty').value = '';
-                e.target.parentElement.querySelector('.material-desc').value = '';
-                e.target.parentElement.querySelector('.material-unit').value = 'PZ';
-            }
-        }
-    });
-    const getMaterialsData = () => {
-        const materials = [];
-        document.querySelectorAll('#materials-container .material-row').forEach(row => {
-            const qty = row.querySelector('.material-qty').value;
-            const unit = row.querySelector('.material-unit').value;
-            const desc = row.querySelector('.material-desc').value.trim();
-            if (qty && desc) {
-                materials.push({ qty, unit, desc });
-            }
-        });
-        return materials;
-    };
-    const setMaterialsData = (materials = []) => {
-        materialsContainer.innerHTML = '';
-        if (materials.length === 0) {
-            addMaterialRow();
-        } else {
-            materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc));
-        }
-    };
-
-    // Logica di reset
-    const resetForm = () => {
-        // ... (resto della logica di reset)
-        setMaterialsData(); // Usa la nuova funzione per resettare i materiali
-    };
-
-    // Logica di aggiunta intervento
-    addBtn.addEventListener('click', () => {
-        // ... (tutta la logica di validazione)
-
-        const intervention = {
-            // ... (altri campi)
-            materials: getMaterialsData(), // Usa la nuova funzione per prendere i dati
-            notes: allInputs.notes.value
-        };
-        // ... (resto della logica di salvataggio)
-    });
-    
-    // Logica di modifica
-    interventionsList.addEventListener('click', (e) => {
-        // ...
-        if (e.target.classList.contains('btn-secondary')) { // Modifica
-            const interv = dailyInterventions.find(i => i.id == id);
-            if (interv) {
-                // ... (imposta tutti gli altri campi)
-                setMaterialsData(interv.materials); // Imposta i materiali salvati
-                // ...
-            }
-        }
-    });
-
-    // Inizializzazione
-    addMaterialRow(); // Aggiunge la prima riga all'avvio
-
-    // (Il resto del codice JavaScript rimane quasi invariato, quindi lo ometto per brevità)
-    // Ho solo aggiornato le funzioni rilevanti. Per sicurezza, usa il codice completo che segue.
-});
-</script>
-
-<!-- Codice JavaScript completo -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW registrato:', reg.scope)).catch(err => console.log('SW non registrato:', err));
-  });
-}
-document.addEventListener('DOMContentLoaded', () => {
-    const allInputs = {
-        date: document.getElementById('date'),
-        client: document.getElementById('client'),
-        startAM: document.getElementById('start-am'),
-        endAM: document.getElementById('end-am'),
-        startPM: document.getElementById('start-pm'),
-        endPM: document.getElementById('end-pm'),
-        workDone: document.getElementById('work-done'),
-        notes: document.getElementById('notes'),
-        employeeName: document.getElementById('employee-name')
-    };
-    const materialsContainer = document.getElementById('materials-container');
-    const addMaterialBtn = document.getElementById('add-material-btn');
-    const addBtn = document.getElementById('add-intervention-btn');
     const interventionsList = document.getElementById('interventions-list');
     const generateBtn = document.getElementById('generate-report-btn');
     const formTitle = document.getElementById('form-title');
@@ -280,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalHoursSpan = document.getElementById('total-hours');
     const summaryTotalSpan = document.getElementById('summary-total');
     let dailyInterventions = [];
-    const unitsOfMeasure = ["PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
+    const unitsOfMeasure = ["", "PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
 
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
@@ -298,10 +183,14 @@ document.addEventListener('DOMContentLoaded', () => {
         totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
     };
     Object.values(allInputs).forEach(el => {
-        if (el.type === 'text' || el.type === 'textarea' || el.tagName === 'TEXTAREA') {
+        const isTextField = el.type === 'text' || el.tagName === 'TEXTAREA';
+        if (isTextField) {
             el.addEventListener('input', () => el.classList.remove('error'));
-        } else {
-            el.addEventListener('input', updateTotals);
+        } else if (el.type === 'time') {
+            el.addEventListener('input', () => {
+                el.classList.remove('error');
+                updateTotals();
+            });
         }
     });
     document.querySelectorAll('.clear-time-btn').forEach(button => {
@@ -317,10 +206,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { toast.className = ''; }, 3000);
     };
     
-    const addMaterialRow = (qty = '', unit = 'PZ', desc = '') => {
+    const addMaterialRow = (qty = '', unit = '', desc = '') => {
         const row = document.createElement('div');
         row.className = 'material-row';
-        const unitOptions = unitsOfMeasure.map(u => `<option value="${u}" ${u === unit ? 'selected' : ''}>${u}</option>`).join('');
+        const unitOptions = unitsOfMeasure.map(u => `<option value="${u}" ${u === unit ? 'selected' : ''}>${u || 'Seleziona...'}</option>`).join('');
         row.innerHTML = `
             <input type="number" class="material-qty" placeholder="Qtà" value="${qty}">
             <select class="material-unit">${unitOptions}</select>
@@ -338,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 e.target.parentElement.querySelector('.material-qty').value = '';
                 e.target.parentElement.querySelector('.material-desc').value = '';
-                e.target.parentElement.querySelector('.material-unit').value = 'PZ';
+                e.target.parentElement.querySelector('.material-unit').value = '';
             }
         }
     });
@@ -348,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const qty = row.querySelector('.material-qty').value;
             const unit = row.querySelector('.material-unit').value;
             const desc = row.querySelector('.material-desc').value.trim();
-            if (qty && desc) {
+            if (qty && unit && desc) {
                 materials.push({ qty, unit, desc });
             }
         });
@@ -363,27 +252,61 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    const renderInterventions = () => { /* Lasciato vuoto per ora, sarà nella prossima fase */ };
+    const renderInterventions = () => {
+        interventionsList.innerHTML = '';
+        let totalMinutesSummary = 0;
+        if (dailyInterventions.length === 0) {
+            interventionsList.innerHTML = '<p>Nessun intervento aggiunto.</p>';
+        } else {
+            dailyInterventions.forEach(interv => {
+                totalMinutesSummary += interv.totalMinutes;
+                const item = document.createElement('div');
+                item.className = 'intervention-item';
+                let timeString = (interv.startAM && interv.endAM ? `M:${interv.startAM}-${interv.endAM}` : '') + ((interv.startAM && interv.endAM && interv.startPM && interv.endPM) ? ', ' : '') + (interv.startPM && interv.endPM ? `P:${interv.startPM}-${interv.endPM}` : '');
+                item.innerHTML = `
+                    <div class="summary-view">
+                        <div class="info">
+                            <span class="client">${interv.client}</span>
+                            <span class="details"><b>Ore:</b> ${interv.totalHours}</span>
+                            <span class="details"><b>Lavoro:</b> ${(interv.workDone || '').substring(0,25)}...</span>
+                        </div>
+                        <div class="actions">
+                            <button class="btn-secondary" data-id="${interv.id}" data-action="edit">Modifica</button>
+                            <button class="btn-danger" data-id="${interv.id}" data-action="delete">Elimina</button>
+                        </div>
+                    </div>
+                    <div class="full-details">
+                        <p><b>Orari:</b> ${timeString || 'N/D'}</p>
+                        <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
+                        <p><b>Materiali Utilizzati:</b><br>${interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') || 'Nessuno'}</p>
+                        <p><b>Note:</b><br>${interv.notes || 'N/D'}</p>
+                    </div>
+                `;
+                interventionsList.appendChild(item);
+            });
+        }
+        summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
+        saveToLocalStorage();
+    };
     
     const resetForm = () => {
-        Object.values(allInputs).forEach(input => { if(input.id !== 'date' && input.id !== 'employee-name') input.value = ''; });
+        Object.values(allInputs).forEach(input => { if (input.id !== 'date' && input.id !== 'employee-name') input.value = ''; });
         interventionIdInput.value = '';
         setMaterialsData();
         formTitle.textContent = 'Nuovo Intervento';
         addBtn.textContent = 'Aggiungi Rapporto';
         updateTotals();
     };
+    
     addBtn.addEventListener('click', () => {
         Object.values(allInputs).forEach(field => field.classList.remove('error'));
         const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone];
         let textIsValid = true;
         requiredTextFields.forEach(field => {
-            if (!field.value.trim()) {
-                field.classList.add('error');
-                textIsValid = false;
-            }
+            if (!field.value.trim()) { field.classList.add('error'); textIsValid = false; }
         });
-        if (!textIsValid) { return showToast('Compila i campi evidenziati!', 'error'); }
+        if (!textIsValid) return showToast('Compila i campi evidenziati!', 'error');
+        
         const { startAM, endAM, startPM, endPM } = allInputs;
         if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) {
             startAM.classList.add('error'); endAM.classList.add('error');
@@ -397,8 +320,10 @@ document.addEventListener('DOMContentLoaded', () => {
             endAM.classList.add('error'); startPM.classList.add('error');
             return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error');
         }
+
         const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
-        if (totalMinutes <= 0) { return showToast('Inserire almeno un intervallo di ore valido.', 'error'); }
+        if (totalMinutes <= 0) return showToast('Inserire almeno un intervallo di ore valido.', 'error');
+        
         const intervention = {
             id: interventionIdInput.value || Date.now(),
             date: allInputs.date.value,
@@ -421,15 +346,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         renderInterventions();
         resetForm();
-    };
+    });
+    
     interventionsList.addEventListener('click', (e) => {
-        const id = e.target.dataset.id;
-        if (!id) return;
-        if (e.target.classList.contains('btn-danger')) {
+        const target = e.target;
+        const action = target.dataset.action;
+        const id = target.dataset.id;
+        
+        if (action === 'delete') {
+            e.stopPropagation();
             dailyInterventions = dailyInterventions.filter(i => i.id != id);
             renderInterventions();
             showToast('Intervento eliminato.', 'error');
-        } else if (e.target.classList.contains('btn-secondary')) {
+        } else if (action === 'edit') {
+            e.stopPropagation();
             const interv = dailyInterventions.find(i => i.id == id);
             if (interv) {
                 formTitle.textContent = 'Modifica Intervento';
@@ -445,13 +375,101 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateTotals();
                 window.scrollTo(0, 0);
             }
+        } else {
+            const item = target.closest('.intervention-item');
+            if (item) item.classList.toggle('expanded');
         }
     });
+
+    const saveToLocalStorage = () => {
+        localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions));
+        localStorage.setItem('employeeName', allInputs.employeeName.value);
+    };
+    const loadFromLocalStorage = () => {
+        const savedName = localStorage.getItem('employeeName');
+        if (savedName) allInputs.employeeName.value = savedName;
+        const data = localStorage.getItem('dailyInterventions');
+        if (data) dailyInterventions = JSON.parse(data);
+    };
     
-    // Il resto delle funzioni (save, load, generate) verranno aggiornate nella Fase B
-    const saveToLocalStorage = () => { /* ... */ };
-    const loadFromLocalStorage = () => { /* ... */ };
-    generateBtn.addEventListener('click', () => { showToast('Funzione Report da aggiornare', 'error'); });
+    generateBtn.addEventListener('click', async () => {
+        if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
+        const employeeName = allInputs.employeeName.value.trim();
+        if (!employeeName) {
+            allInputs.employeeName.classList.add('error');
+            return showToast('Per favore, inserisci il tuo nome.', 'error');
+        } else {
+            allInputs.employeeName.classList.remove('error');
+        }
+        const reportDate = dailyInterventions[0].date;
+        const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}`;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+        let yPos = 40;
+        const pageHeight = doc.internal.pageSize.height;
+        const margin = 40;
+        const addHeader = () => {
+            doc.setFontSize(22); doc.setFont(undefined, 'bold');
+            doc.text(`Rapporto di Intervento Giornaliero`, doc.internal.pageSize.width / 2, yPos, { align: 'center' }); yPos += 30;
+            doc.setFontSize(12); doc.setFont(undefined, 'normal');
+            doc.text(`Data: ${reportDate}`, margin, yPos);
+            doc.text(`Operatore: ${employeeName}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 25;
+            doc.setLineWidth(1.5); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); yPos += 20;
+        };
+        addHeader();
+        dailyInterventions.forEach((interv, index) => {
+            const checkPageBreak = (space) => { if (yPos + space > pageHeight - margin) { doc.addPage(); yPos = margin; addHeader(); } };
+            checkPageBreak(120);
+            doc.setFontSize(14); doc.setFont(undefined, 'bold');
+            doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos); yPos += 20;
+            doc.setFontSize(10); doc.setFont(undefined, 'normal');
+            let timeString = (interv.startAM && interv.endAM ? `Mattino: ${interv.startAM}-${interv.endAM}` : '') + ((interv.startAM && interv.endAM && interv.startPM && interv.endPM) ? ' | ' : '') + (interv.startPM && interv.endPM ? `Pomeriggio: ${interv.startPM}-${interv.endPM}` : '');
+            doc.text(`Orari: ${timeString || 'N/D'}`, margin, yPos);
+            doc.text(`Ore Totali: ${interv.totalHours}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 20;
+            const addSection = (title, content) => {
+                if (content && content.trim() !== '') {
+                    doc.setFont(undefined, 'bold'); doc.text(title, margin, yPos); yPos += 12;
+                    doc.setFont(undefined, 'normal');
+                    const lines = doc.splitTextToSize(content, doc.internal.pageSize.width - margin * 2);
+                    checkPageBreak(lines.length * 12 + 20);
+                    doc.text(lines, margin, yPos); yPos += (lines.length * 12) + 10;
+                }
+            };
+            addSection('Lavoro Svolto:', interv.workDone);
+            const materialsText = interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('\n');
+            addSection('Materiali Utilizzati:', materialsText);
+            addSection('Note Aggiuntive:', interv.notes);
+            yPos += 15;
+        });
+        const pdfBlob = doc.output('blob');
+        const excelData = dailyInterventions.flatMap(i => i.materials.length > 0 ? i.materials.map(m => ({ Operatore: employeeName, Data: i.date, Cliente: i.client, Ore_Totali_Intervento: i.totalHours, Lavoro_Svolto: i.workDone, Note: i.notes, Qta_Materiale: m.qty, UM_Materiale: m.unit, Desc_Materiale: m.desc })) : [{ Operatore: employeeName, Data: i.date, Cliente: i.client, Ore_Totali_Intervento: i.totalHours, Lavoro_Svolto: i.workDone, Note: i.notes, Qta_Materiale: '', UM_Materiale: '', Desc_Materiale: '' }] );
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Interventi");
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const excelBlob = new Blob([wbout], { type: 'application/octet-stream' });
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = pdfUrl; a.download = `${fileNameBase}.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(pdfUrl);
+        showToast('PDF salvato nei Download!');
+        const pdfFile = new File([pdfBlob], `${fileNameBase}.pdf`, { type: 'application/pdf' });
+        const excelFile = new File([excelBlob], `${fileNameBase}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile, excelFile] })) {
+            try {
+                await navigator.share({ files: [pdfFile, excelFile], title: `Report Interventi ${reportDate} - ${employeeName}`, text: `In allegato il report interventi del ${reportDate} compilato da ${employeeName}.`});
+                if (confirm("Report inviato. Vuoi cancellare la lista degli interventi per oggi?")) {
+                    dailyInterventions = [];
+                    localStorage.removeItem('dailyInterventions');
+                    renderInterventions();
+                }
+            } catch (error) { showToast('Condivisione annullata.', 'error'); }
+        } else {
+            showToast('Browser non supporta condivisione file. Salva i file e allegali.', 'error');
+            XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
+        }
+    });
     
     allInputs.date.value = new Date().toISOString().slice(0, 10);
     loadFromLocalStorage();
