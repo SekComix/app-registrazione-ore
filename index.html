@@ -2,26 +2,514 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App Ore Semplice</title>
-    <style>body{font-family: Arial, sans-serif; padding: 20px;}</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Report Interventi</title>
+    
+    <!-- Meta Tags per la Web App (PWA) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#007bff">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
+    
+    <style>
+        /* Stili per un'interfaccia pulita e moderna */
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --light-gray: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--light-gray);
+            margin: 0;
+            padding: 15px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-container img {
+            width: 80px; /* Imposta la larghezza della tua lampadina */
+            height: auto;
+        }
+        .logo-container h1 {
+            color: var(--primary-color);
+            margin: 5px 0 20px 0;
+            font-size: 1.5em;
+        }
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .time-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+        .subtotal {
+            text-align: right;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        #total-hours {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--success-color);
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:active { transform: scale(0.98); }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-success { background-color: var(--success-color); color: white; }
+        
+        /* Stili per la lista degli interventi */
+        #interventions-list .intervention-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .intervention-item .info { flex-grow: 1; }
+        .intervention-item .info span { display: block; }
+        .intervention-item .info .client { font-weight: bold; }
+        .intervention-item .actions button {
+            width: auto;
+            padding: 8px 12px;
+            margin-left: 5px;
+            font-size: 14px;
+        }
+        .btn-secondary { background-color: var(--secondary-color); color: white; }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+
+        /* Notifica Toast */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translate(-50%, 150%);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            color: white;
+            z-index: 1000;
+            transition: transform 0.4s ease-in-out;
+            font-weight: bold;
+        }
+        #toast.show { transform: translate(-50%, 0); }
+        #toast.success { background-color: var(--success-color); }
+        #toast.error { background-color: var(--danger-color); }
+    </style>
+    <!-- Librerie per PDF ed Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-    <h1>Test App Ore</h1>
-    <p>Se vedi questa pagina, la pubblicazione sta funzionando!</p>
-    <input type="time" id="start">
-    <input type="time" id="end">
-    <button id="calc">Calcola</button>
-    <p id="result"></p>
-    <script>
-        document.getElementById('calc').onclick = function() {
-            const start = document.getElementById('start').value;
-            const end = document.getElementById('end').value;
-            if(start && end) {
-                const diff = new Date(`1970-01-01T${end}`) - new Date(`1970-01-01T${start}`);
-                document.getElementById('result').innerText = `Durata: ${diff / 3600000} ore.`;
-            }
+
+<div class="container">
+    <div class="logo-container">
+        <!-- SOSTITUISCI IL LINK IMMAGINE E IL NOME DITTA QUI SOTTO -->
+        <img src="https://i.imgur.com/your-logo.png" alt="Logo Azienda">
+        <h1>La Tua Ditta</h1>
+    </div>
+
+    <!-- CARD PER L'INSERIMENTO DI UN NUOVO INTERVENTO -->
+    <div class="card" id="form-card">
+        <h2 id="form-title">Nuovo Intervento</h2>
+        <input type="hidden" id="intervention-id">
+        
+        <div class="form-group">
+            <label for="date">Data</label>
+            <input type="date" id="date">
+        </div>
+        <div class="form-group">
+            <label for="client">Cliente</label>
+            <input type="text" id="client" placeholder="Nome del cliente">
+        </div>
+        
+        <h4>Mattino</h4>
+        <div class="time-section">
+            <div>
+                <label for="start-am">Ora Inizio</label>
+                <input type="time" id="start-am">
+            </div>
+            <div>
+                <label for="end-am">Ora Fine</label>
+                <input type="time" id="end-am">
+            </div>
+            <div class="subtotal" colspan="2">Subtotale: <span id="subtotal-am">0h 0min</span></div>
+        </div>
+
+        <h4>Pomeriggio</h4>
+        <div class="time-section">
+            <div>
+                <label for="start-pm">Ora Inizio</label>
+                <input type="time" id="start-pm">
+            </div>
+            <div>
+                <label for="end-pm">Ora Fine</label>
+                <input type="time" id="end-pm">
+            </div>
+            <div class="subtotal" colspan="2">Subtotale: <span id="subtotal-pm">0h 0min</span></div>
+        </div>
+
+        <div id="total-hours">Totale Ore: 0h 0min</div>
+
+        <div class="form-group">
+            <label for="work-done">Lavoro Svolto</label>
+            <textarea id="work-done" rows="4"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="materials">Materiali</label>
+            <textarea id="materials" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="notes">Note</label>
+            <textarea id="notes" rows="2"></textarea>
+        </div>
+
+        <button id="add-intervention-btn" class="btn-primary">Aggiungi Intervento alla Giornata</button>
+    </div>
+
+    <!-- CARD PER IL RIEPILOGO DEGLI INTERVENTI DELLA GIORNATA -->
+    <div class="card" id="summary-card">
+        <h2>Riepilogo Giornata</h2>
+        <div id="interventions-list">
+            <!-- Qui verranno aggiunti dinamicamente gli interventi -->
+        </div>
+        <div class="form-group" style="margin-top: 20px;">
+            <button id="generate-report-btn" class="btn-success">Invia e Salva Report</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Riferimenti agli elementi del DOM
+    const dateInput = document.getElementById('date');
+    const clientInput = document.getElementById('client');
+    const startAM = document.getElementById('start-am');
+    const endAM = document.getElementById('end-am');
+    const startPM = document.getElementById('start-pm');
+    const endPM = document.getElementById('end-pm');
+    const workDoneInput = document.getElementById('work-done');
+    const materialsInput = document.getElementById('materials');
+    const notesInput = document.getElementById('notes');
+    const addBtn = document.getElementById('add-intervention-btn');
+    const interventionsList = document.getElementById('interventions-list');
+    const generateBtn = document.getElementById('generate-report-btn');
+    const formTitle = document.getElementById('form-title');
+    const interventionIdInput = document.getElementById('intervention-id');
+    const toast = document.getElementById('toast');
+    
+    // Riferimenti ai totali
+    const subtotalAMSpan = document.getElementById('subtotal-am');
+    const subtotalPMSpan = document.getElementById('subtotal-pm');
+    const totalHoursSpan = document.getElementById('total-hours');
+
+    // Array per memorizzare gli interventi della giornata
+    let dailyInterventions = [];
+
+    // Funzione per calcolare i minuti tra due orari
+    const calculateMinutes = (start, end) => {
+        if (!start || !end) return 0;
+        const startTime = new Date(`1970-01-01T${start}`);
+        const endTime = new Date(`1970-01-01T${end}`);
+        return (endTime - startTime) / (1000 * 60);
+    };
+
+    // Funzione per formattare i minuti in ore e minuti
+    const formatMinutes = (totalMinutes) => {
+        if (totalMinutes < 0) totalMinutes = 0;
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return `${hours}h ${minutes}min`;
+    };
+
+    // Funzione per aggiornare i totali in tempo reale
+    const updateTotals = () => {
+        const minutesAM = calculateMinutes(startAM.value, endAM.value);
+        const minutesPM = calculateMinutes(startPM.value, endPM.value);
+        subtotalAMSpan.textContent = formatMinutes(minutesAM);
+        subtotalPMSpan.textContent = formatMinutes(minutesPM);
+        totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
+    };
+
+    // Aggiungi event listener per l'aggiornamento automatico
+    [startAM, endAM, startPM, endPM].forEach(el => el.addEventListener('input', updateTotals));
+
+    // Funzione per mostrare le notifiche
+    const showToast = (message, type = 'success') => {
+        toast.textContent = message;
+        toast.className = `show ${type}`;
+        setTimeout(() => { toast.className = ''; }, 3000);
+    };
+
+    // Funzione per renderizzare la lista degli interventi
+    const renderInterventions = () => {
+        interventionsList.innerHTML = '';
+        if (dailyInterventions.length === 0) {
+            interventionsList.innerHTML = '<p>Nessun intervento aggiunto per oggi.</p>';
+            return;
+        }
+        dailyInterventions.forEach(interv => {
+            const item = document.createElement('div');
+            item.className = 'intervention-item';
+            item.innerHTML = `
+                <div class="info">
+                    <span class="client">${interv.client}</span>
+                    <span>${interv.totalHours}</span>
+                </div>
+                <div class="actions">
+                    <button class="btn-secondary" data-id="${interv.id}">Modifica</button>
+                    <button class="btn-danger" data-id="${interv.id}">Elimina</button>
+                </div>
+            `;
+            interventionsList.appendChild(item);
+        });
+        saveToLocalStorage();
+    };
+
+    // Funzione per resettare il form
+    const resetForm = () => {
+        clientInput.value = '';
+        startAM.value = ''; endAM.value = '';
+        startPM.value = ''; endPM.value = '';
+        workDoneInput.value = ''; materialsInput.value = ''; notesInput.value = '';
+        interventionIdInput.value = '';
+        formTitle.textContent = 'Nuovo Intervento';
+        addBtn.textContent = 'Aggiungi Intervento alla Giornata';
+        updateTotals();
+    };
+
+    // Aggiungere o modificare un intervento
+    addBtn.addEventListener('click', () => {
+        if (!clientInput.value || !dateInput.value) {
+            showToast('Cliente e Data sono obbligatori!', 'error');
+            return;
+        }
+        
+        const minutesAM = calculateMinutes(startAM.value, endAM.value);
+        const minutesPM = calculateMinutes(startPM.value, endPM.value);
+        const totalMinutes = minutesAM + minutesPM;
+        
+        if (totalMinutes <= 0) {
+            showToast('Inserire almeno un intervallo di ore valido.', 'error');
+            return;
+        }
+
+        const intervention = {
+            id: interventionIdInput.value || Date.now(), // Usa ID esistente o ne crea uno nuovo
+            date: dateInput.value,
+            client: clientInput.value,
+            startAM: startAM.value, endAM: endAM.value,
+            startPM: startPM.value, endPM: endPM.value,
+            totalHours: formatMinutes(totalMinutes),
+            totalMinutes: totalMinutes,
+            workDone: workDoneInput.value,
+            materials: materialsInput.value,
+            notes: notesInput.value
         };
-    </script>
+
+        const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
+        if (existingIndex > -1) {
+            // Modifica
+            dailyInterventions[existingIndex] = intervention;
+            showToast('Intervento modificato!');
+        } else {
+            // Aggiunta
+            dailyInterventions.push(intervention);
+            showToast('Intervento aggiunto!');
+        }
+        
+        renderInterventions();
+        resetForm();
+    });
+
+    // Gestione pulsanti Modifica ed Elimina
+    interventionsList.addEventListener('click', (e) => {
+        const id = e.target.dataset.id;
+        if (!id) return;
+
+        if (e.target.classList.contains('btn-danger')) { // Elimina
+            dailyInterventions = dailyInterventions.filter(i => i.id != id);
+            renderInterventions();
+            showToast('Intervento eliminato.', 'error');
+        } else if (e.target.classList.contains('btn-secondary')) { // Modifica
+            const interv = dailyInterventions.find(i => i.id == id);
+            if (interv) {
+                formTitle.textContent = 'Modifica Intervento';
+                addBtn.textContent = 'Salva Modifiche';
+                interventionIdInput.value = interv.id;
+                dateInput.value = interv.date;
+                clientInput.value = interv.client;
+                startAM.value = interv.startAM; endAM.value = interv.endAM;
+                startPM.value = interv.startPM; endPM.value = interv.endPM;
+                workDoneInput.value = interv.workDone;
+                materialsInput.value = interv.materials;
+                notesInput.value = interv.notes;
+                updateTotals();
+                window.scrollTo(0, 0); // Torna in cima alla pagina per modificare
+            }
+        }
+    });
+
+    // Funzione per salvare i dati nel localStorage
+    const saveToLocalStorage = () => {
+        localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions));
+    };
+
+    // Funzione per caricare i dati dal localStorage
+    const loadFromLocalStorage = () => {
+        const data = localStorage.getItem('dailyInterventions');
+        if (data) {
+            dailyInterventions = JSON.parse(data);
+            renderInterventions();
+        }
+    };
+    
+    // --- FUNZIONALITÀ DI GENERAZIONE REPORT ---
+    generateBtn.addEventListener('click', async () => {
+        if (dailyInterventions.length === 0) {
+            showToast('Nessun intervento da inviare.', 'error');
+            return;
+        }
+
+        const reportDate = dailyInterventions[0].date; // Usa la data del primo intervento per il nome file
+
+        // 1. GENERA PDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        let yPos = 20;
+        doc.setFontSize(18);
+        doc.text(`Report Interventi del ${reportDate}`, 105, yPos, { align: 'center' });
+        yPos += 20;
+
+        dailyInterventions.forEach(interv => {
+            doc.setFontSize(14);
+            doc.text(`Cliente: ${interv.client}`, 14, yPos);
+            yPos += 8;
+            doc.setFontSize(10);
+            doc.text(`Totale Ore: ${interv.totalHours}`, 14, yPos);
+            yPos += 6;
+            doc.text(`Lavoro Svolto: ${interv.workDone}`, 14, yPos, { maxWidth: 180 });
+            yPos += 15;
+            doc.text(`Materiali: ${interv.materials}`, 14, yPos, { maxWidth: 180 });
+            yPos += 15;
+            doc.line(14, yPos, 196, yPos); // Linea separatrice
+            yPos += 10;
+        });
+        const pdfBlob = doc.output('blob');
+        
+        // 2. GENERA EXCEL
+        const excelData = dailyInterventions.map(i => ({
+            Data: i.date,
+            Cliente: i.client,
+            Inizio_Mattino: i.startAM,
+            Fine_Mattino: i.endAM,
+            Inizio_Pomeriggio: i.startPM,
+            Fine_Pomeriggio: i.endPM,
+            Ore_Totali: i.totalHours,
+            Lavoro_Svolto: i.workDone,
+            Materiali: i.materials,
+            Note: i.notes
+        }));
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Interventi");
+        // Per creare il Blob per l'allegato
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const excelBlob = new Blob([wbout], { type: 'application/octet-stream' });
+        
+        // 3. SALVA PDF SUL DISPOSITIVO
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = pdfUrl;
+        a.download = `Interventi_${reportDate}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(pdfUrl);
+        showToast('PDF salvato nei Download!');
+
+        // 4. INVIA EMAIL CON ALLEGATI (usando la Web Share API se disponibile)
+        const pdfFile = new File([pdfBlob], `Interventi_${reportDate}.pdf`, { type: 'application/pdf' });
+        const excelFile = new File([excelBlob], `Report_${reportDate}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile, excelFile] })) {
+            try {
+                await navigator.share({
+                    files: [pdfFile, excelFile],
+                    title: `Report Interventi ${reportDate}`,
+                    text: `In allegato il report interventi del ${reportDate}.`
+                });
+                showToast('Report condiviso con successo!');
+                // Chiedi se svuotare la lista dopo l'invio
+                if(confirm("Report inviato. Vuoi cancellare la lista degli interventi per oggi?")) {
+                    dailyInterventions = [];
+                    localStorage.removeItem('dailyInterventions');
+                    renderInterventions();
+                }
+            } catch (error) {
+                console.log('Share error:', error);
+                showToast('Condivisione annullata.', 'error');
+            }
+        } else {
+            showToast('Il tuo browser non supporta la condivisione di file. Salva i file e allegali manualmente.', 'error');
+            // Fallback: scarica anche l'excel
+             XLSX.writeFile(wb, `Report_${reportDate}.xlsx`);
+        }
+    });
+
+    // Inizializzazione
+    dateInput.value = new Date().toISOString().slice(0, 10);
+    loadFromLocalStorage();
+    renderInterventions();
+});
+</script>
+
 </body>
 </html>
