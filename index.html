@@ -124,8 +124,8 @@
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then(registration => { console.log('Service Worker registrato con successo:', registration.scope); })
-      .catch(error => { console.log('Registrazione Service Worker fallita:', error); });
+      .then(registration => { console.log('Service Worker registrato:', registration.scope); })
+      .catch(error => { console.log('Registrazione SW fallita:', error); });
   });
 }
 
@@ -188,7 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { toast.className = ''; }, 3000);
     };
 
-    // === FUNZIONE RENDER CON NOTE INCLUSE ===
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
         let totalMinutesSummary = 0;
@@ -197,13 +196,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             dailyInterventions.forEach(interv => {
                 totalMinutesSummary += interv.totalMinutes;
-                
                 const truncate = (text, length) => (text && text.length > length) ? text.substring(0, length) + '...' : (text || 'N/D');
-                
                 let timeString = '';
                 if (interv.startAM && interv.endAM) timeString += `M: ${interv.startAM}-${interv.endAM}`;
                 if (interv.startPM && interv.endPM) timeString += `${timeString ? ', ' : ''}P: ${interv.startPM}-${interv.endPM}`;
-                
                 const item = document.createElement('div');
                 item.className = 'intervention-item';
                 item.innerHTML = `
@@ -224,7 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
         saveToLocalStorage();
     };
-    // ===================================
 
     const resetForm = () => {
         clientInput.value = '';
@@ -314,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.setFontSize(10); doc.text(`Totale Ore: ${interv.totalHours}`, 14, yPos); yPos += 6;
             doc.text(`Lavoro Svolto: ${interv.workDone || 'N/D'}`, 14, yPos, { maxWidth: 180 }); yPos += 15;
             doc.text(`Materiali: ${interv.materials || 'N/D'}`, 14, yPos, { maxWidth: 180 }); yPos += 15;
-            // === RIGA AGGIUNTA PER LE NOTE NEL PDF ===
             doc.text(`Note: ${interv.notes || 'N/D'}`, 14, yPos, { maxWidth: 180 }); yPos += 15;
             doc.line(14, yPos, 196, yPos); yPos += 10;
         });
