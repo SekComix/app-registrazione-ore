@@ -213,25 +213,47 @@ document.addEventListener('DOMContentLoaded', () => {
         addBtn.textContent = 'Aggiungi Rapporto';
         updateTotals();
     };
+    
+    // === NUOVO: Logica di validazione migliorata ===
     addBtn.addEventListener('click', () => {
-        const requiredFields = {
-            "Il Tuo Nome": allInputs.employeeName,
-            "Cliente": allInputs.client,
-            "Lavoro Svolto": allInputs.workDone
-        };
-        let isValid = true;
-        Object.values(requiredFields).forEach(field => field.classList.remove('error'));
-        for (const [key, field] of Object.entries(requiredFields)) {
+        // Rimuovi errori precedenti
+        Object.values(allInputs).forEach(field => field.classList.remove('error'));
+        
+        // 1. Controlla i campi di testo obbligatori
+        const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone];
+        let textIsValid = true;
+        requiredTextFields.forEach(field => {
             if (!field.value.trim()) {
                 field.classList.add('error');
-                isValid = false;
+                textIsValid = false;
             }
+        });
+        if (!textIsValid) { return showToast('Compila i campi evidenziati!', 'error'); }
+
+        // 2. Controlla la validità degli orari
+        const { startAM, endAM, startPM, endPM } = allInputs;
+        let timeError = null;
+
+        if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) {
+            timeError = "Orario mattino incompleto.";
+            startAM.classList.add('error');
+            endAM.classList.add('error');
+        } else if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) {
+            timeError = "Orario pomeriggio incompleto.";
+            startPM.classList.add('error');
+            endPM.classList.add('error');
+        } else if (endAM.value && startPM.value && startPM.value < endAM.value) {
+            timeError = "L'inizio del pomeriggio non può precedere la fine del mattino.";
+            endAM.classList.add('error');
+            startPM.classList.add('error');
         }
-        if (!isValid) {
-            return showToast('Compila i campi evidenziati!', 'error');
-        }
-        const totalMinutes = calculateMinutes(allInputs.startAM.value, allInputs.endAM.value) + calculateMinutes(allInputs.startPM.value, allInputs.endPM.value);
+        if(timeError) { return showToast(timeError, 'error'); }
+
+        // 3. Controlla che ci sia almeno un blocco orario
+        const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
         if (totalMinutes <= 0) { return showToast('Inserire almeno un intervallo di ore valido.', 'error'); }
+
+        // Se tutti i controlli passano, procedi
         const intervention = {
             id: interventionIdInput.value || Date.now(),
             date: allInputs.date.value,
@@ -255,6 +277,8 @@ document.addEventListener('DOMContentLoaded', () => {
         renderInterventions();
         resetForm();
     });
+    // ===============================================
+
     interventionsList.addEventListener('click', (e) => {
         const id = e.target.dataset.id;
         if (!id) return;
@@ -290,8 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = localStorage.getItem('dailyInterventions');
         if (data) dailyInterventions = JSON.parse(data);
     };
-
-    // === NUOVO: Funzione PDF migliorata e dettagliata ===
     generateBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
@@ -301,16 +323,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             allInputs.employeeName.classList.remove('error');
         }
-        
         const reportDate = dailyInterventions[0].date;
         const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}`;
-        
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ unit: 'pt', format: 'a4' });
         let yPos = 40;
         const pageHeight = doc.internal.pageSize.height;
         const margin = 40;
-
         const addHeader = () => {
             doc.setFontSize(22);
             doc.setFont(undefined, 'bold');
@@ -325,9 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos);
             yPos += 20;
         };
-
         addHeader();
-
         dailyInterventions.forEach((interv, index) => {
             const checkPageBreak = (spaceNeeded) => {
                 if (yPos + spaceNeeded > pageHeight - margin) {
@@ -336,44 +353,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     addHeader();
                 }
             };
-            
-            checkPageBreak(120); // Spazio minimo per un nuovo intervento
-
+            checkPageBreak(120);
             doc.setFontSize(14);
             doc.setFont(undefined, 'bold');
             doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos);
             yPos += 20;
-
             doc.setFontSize(10);
             doc.setFont(undefined, 'normal');
-            
             let timeString = '';
             if (interv.startAM && interv.endAM) timeString += `Mattino: ${interv.startAM} - ${interv.endAM}`;
             if (interv.startPM && interv.endPM) timeString += `${timeString ? '  |  ' : ''}Pomeriggio: ${interv.startPM} - ${interv.endPM}`;
             doc.text(`Orari: ${timeString || 'N/D'}`, margin, yPos);
             doc.text(`Ore Totali: ${interv.totalHours}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' });
             yPos += 20;
-
             const addSection = (title, content) => {
-                if (content) {
+                if (content && content.trim() !== '') {
                     doc.setFont(undefined, 'bold');
                     doc.text(title, margin, yPos);
                     yPos += 12;
                     doc.setFont(undefined, 'normal');
                     const textLines = doc.splitTextToSize(content, doc.internal.pageSize.width - margin * 2);
-                    checkPageBreak(textLines.length * 12);
+                    checkPageBreak(textLines.length * 12 + 20);
                     doc.text(textLines, margin, yPos);
                     yPos += (textLines.length * 12) + 10;
                 }
             };
-
             addSection('Lavoro Svolto:', interv.workDone);
             addSection('Materiali Utilizzati:', interv.materials);
             addSection('Note Aggiuntive:', interv.notes);
-
             yPos += 15;
         });
-
         const pdfBlob = doc.output('blob');
         const excelData = dailyInterventions.map(i => ({ Operatore: employeeName, Data: i.date, Cliente: i.client, Inizio_Mattino: i.startAM, Fine_Mattino: i.endAM, Inizio_Pomeriggio: i.startPM, Fine_Pomeriggio: i.endPM, Ore_Totali: i.totalHours, Lavoro_Svolto: i.workDone, Materiali: i.materials, Note: i.notes }));
         const ws = XLSX.utils.json_to_sheet(excelData);
@@ -381,14 +390,12 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.utils.book_append_sheet(wb, ws, "Interventi");
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
         const excelBlob = new Blob([wbout], { type: 'application/octet-stream' });
-        
         const pdfUrl = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
         a.href = pdfUrl; a.download = `${fileNameBase}.pdf`;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         URL.revokeObjectURL(pdfUrl);
         showToast('PDF salvato nei Download!');
-
         const pdfFile = new File([pdfBlob], `${fileNameBase}.pdf`, { type: 'application/pdf' });
         const excelFile = new File([excelBlob], `${fileNameBase}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         if (navigator.canShare && navigator.canShare({ files: [pdfFile, excelFile] })) {
@@ -405,7 +412,6 @@ document.addEventListener('DOMContentLoaded', () => {
             XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
         }
     });
-
     allInputs.date.value = new Date().toISOString().slice(0, 10);
     loadFromLocalStorage();
     renderInterventions();
