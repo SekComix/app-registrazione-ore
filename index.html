@@ -32,11 +32,42 @@
         .logo-container img { width: 80px; height: auto; border-radius: 15px; }
         .logo-container h1 { color: var(--primary-color); margin: 5px 0 20px 0; font-size: 1.5em; }
         .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        h2 { color: var(--primary-color); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        h2, h4 { color: var(--primary-color); }
+        h4 { border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 20px;}
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
         input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         .time-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: center; }
+        
+        /* === NUOVO: Stile per il contenitore dell'input ora e la X === */
+        .time-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .clear-time-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #e9ecef;
+            color: #495057;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none; /* Nascosto di default */
+            line-height: 24px;
+            text-align: center;
+        }
+        .time-input-wrapper input:not(:placeholder-shown) + .clear-time-btn {
+            display: inline-block; /* Mostra la X solo se c'è del testo */
+        }
+        /* ============================================================= */
+
         .subtotal { text-align: right; font-weight: bold; font-size: 1.1em; grid-column: 1 / -1; }
         #total-hours { font-size: 1.5em; font-weight: bold; color: var(--success-color); text-align: center; margin: 20px 0; }
         button { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
@@ -83,16 +114,42 @@
         </div>
         <h4>Mattino</h4>
         <div class="time-section">
-            <div><label for="start-am">Ora Inizio</label><input type="time" id="start-am"></div>
-            <div><label for="end-am">Ora Fine</label><input type="time" id="end-am"></div>
+            <!-- === NUOVO: Struttura HTML per input con la X === -->
+            <div>
+                <label for="start-am">Ora Inizio</label>
+                <div class="time-input-wrapper">
+                    <input type="time" id="start-am" placeholder=" ">
+                    <button class="clear-time-btn" data-target="start-am">&times;</button>
+                </div>
+            </div>
+            <div>
+                <label for="end-am">Ora Fine</label>
+                <div class="time-input-wrapper">
+                    <input type="time" id="end-am" placeholder=" ">
+                    <button class="clear-time-btn" data-target="end-am">&times;</button>
+                </div>
+            </div>
             <div class="subtotal">Subtotale: <span id="subtotal-am">0h 0min</span></div>
         </div>
         <h4>Pomeriggio</h4>
         <div class="time-section">
-            <div><label for="start-pm">Ora Inizio</label><input type="time" id="start-pm"></div>
-            <div><label for="end-pm">Ora Fine</label><input type="time" id="end-pm"></div>
+            <div>
+                <label for="start-pm">Ora Inizio</label>
+                <div class="time-input-wrapper">
+                    <input type="time" id="start-pm" placeholder=" ">
+                    <button class="clear-time-btn" data-target="start-pm">&times;</button>
+                </div>
+            </div>
+            <div>
+                <label for="end-pm">Ora Fine</label>
+                <div class="time-input-wrapper">
+                    <input type="time" id="end-pm" placeholder=" ">
+                    <button class="clear-time-btn" data-target="end-pm">&times;</button>
+                </div>
+            </div>
             <div class="subtotal">Subtotale: <span id="subtotal-pm">0h 0min</span></div>
         </div>
+        <!-- =================================================== -->
         <div id="total-hours">Totale Ore: 0h 0min</div>
         <div class="form-group"><label for="work-done">Lavoro Svolto</label><textarea id="work-done" rows="4"></textarea></div>
         <div class="form-group"><label for="materials">Materiali</label><textarea id="materials" rows="2"></textarea></div>
@@ -111,6 +168,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // Riferimenti agli elementi del DOM (invariati)
     const dateInput = document.getElementById('date');
     const clientInput = document.getElementById('client');
     const startAM = document.getElementById('start-am');
@@ -133,6 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let dailyInterventions = [];
 
+    // Funzioni di calcolo e formato (invariate)
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         const startTime = new Date(`1970-01-01T${start}:00`);
@@ -140,14 +199,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isNaN(startTime.getTime()) || isNaN(endTime.getTime()) || endTime < startTime) return 0;
         return (endTime - startTime) / 60000;
     };
-
     const formatMinutes = (totalMinutes) => {
         if (totalMinutes <= 0) return '0h 0min';
         const hours = Math.floor(totalMinutes / 60);
         const minutes = Math.round(totalMinutes % 60);
         return `${hours}h ${minutes}min`;
     };
-
     const updateTotals = () => {
         const minutesAM = calculateMinutes(startAM.value, endAM.value);
         const minutesPM = calculateMinutes(startPM.value, endPM.value);
@@ -156,8 +213,24 @@ document.addEventListener('DOMContentLoaded', () => {
         totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
     };
 
+    // Listener per i campi ora (invariato)
     [startAM, endAM, startPM, endPM].forEach(el => el.addEventListener('input', updateTotals));
 
+    // === NUOVO: Logica per i pulsanti "X" di pulizia ===
+    document.querySelectorAll('.clear-time-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            event.preventDefault(); // Impedisce al form di inviarsi
+            const targetInputId = event.target.dataset.target;
+            const inputToClear = document.getElementById(targetInputId);
+            if (inputToClear) {
+                inputToClear.value = '';
+                updateTotals(); // Ricalcola i totali dopo aver pulito il campo
+            }
+        });
+    });
+    // ======================================================
+
+    // Le altre funzioni (showToast, renderInterventions, resetForm, ecc.) rimangono invariate...
     const showToast = (message, type = 'success') => {
         toast.textContent = message;
         toast.className = `show ${type}`;
@@ -191,15 +264,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     addBtn.addEventListener('click', () => {
-        if (!clientInput.value || !dateInput.value) {
-            showToast('Cliente e Data sono obbligatori!', 'error');
-            return;
-        }
+        if (!clientInput.value || !dateInput.value) { return showToast('Cliente e Data sono obbligatori!', 'error'); }
         const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
-        if (totalMinutes <= 0) {
-            showToast('Inserire almeno un intervallo di ore valido.', 'error');
-            return;
-        }
+        if (totalMinutes <= 0) { return showToast('Inserire almeno un intervallo di ore valido.', 'error'); }
         const intervention = {
             id: interventionIdInput.value || Date.now(),
             date: dateInput.value,
@@ -266,19 +333,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = employeeNameInput.value.trim();
         if (!employeeName) return showToast('Per favore, inserisci il tuo nome.', 'error');
-        
         const reportDate = dailyInterventions[0].date;
         const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}`;
-
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         let yPos = 15;
-        doc.setFontSize(18);
-        doc.text(`Report Interventi del ${reportDate}`, 105, yPos, { align: 'center' });
-        yPos += 8;
-        doc.setFontSize(12);
-        doc.text(`Operatore: ${employeeName}`, 105, yPos, { align: 'center' });
-        yPos += 15;
+        doc.setFontSize(18); doc.text(`Report Interventi del ${reportDate}`, 105, yPos, { align: 'center' }); yPos += 8;
+        doc.setFontSize(12); doc.text(`Operatore: ${employeeName}`, 105, yPos, { align: 'center' }); yPos += 15;
         dailyInterventions.forEach(interv => {
             doc.setFontSize(14); doc.text(`Cliente: ${interv.client}`, 14, yPos); yPos += 8;
             doc.setFontSize(10); doc.text(`Totale Ore: ${interv.totalHours}`, 14, yPos); yPos += 6;
@@ -287,23 +348,20 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.line(14, yPos, 196, yPos); yPos += 10;
         });
         const pdfBlob = doc.output('blob');
-
         const excelData = dailyInterventions.map(i => ({ Operatore: employeeName, Data: i.date, Cliente: i.client, Inizio_Mattino: i.startAM, Fine_Mattino: i.endAM, Inizio_Pomeriggio: i.startPM, Fine_Pomeriggio: i.endPM, Ore_Totali: i.totalHours, Lavoro_Svolto: i.workDone, Materiali: i.materials, Note: i.notes }));
         const ws = XLSX.utils.json_to_sheet(excelData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Interventi");
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
         const excelBlob = new Blob([wbout], { type: 'application/octet-stream' });
-        
         const pdfUrl = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
         a.href = pdfUrl; a.download = `${fileNameBase}.pdf`;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         URL.revokeObjectURL(pdfUrl);
         showToast('PDF salvato nei Download!');
-
         const pdfFile = new File([pdfBlob], `${fileNameBase}.pdf`, { type: 'application/pdf' });
-        const excelFile = new File([excelBlob], `${fileName-base}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const excelFile = new File([excelBlob], `${fileNameBase}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         if (navigator.canShare && navigator.canShare({ files: [pdfFile, excelFile] })) {
             try {
                 await navigator.share({ files: [pdfFile, excelFile], title: `Report Interventi ${reportDate} - ${employeeName}`, text: `In allegato il report interventi del ${reportDate} compilato da ${employeeName}.`});
