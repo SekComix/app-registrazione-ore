@@ -51,7 +51,6 @@
         #summary-total { font-size: 1.2em; font-weight: bold; color: var(--success-color); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* === NUOVO STILE PER IL RIASSUNTO DETTAGLIATO === */
         #interventions-list .intervention-item {
             display: flex; justify-content: flex-start; align-items: flex-start; padding: 15px;
             border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px;
@@ -65,8 +64,6 @@
         
         .intervention-item .actions { display: flex; flex-direction: column; align-items: flex-end; }
         .intervention-item .actions button { width: auto; padding: 8px 12px; margin-left: 10px; font-size: 14px; margin-bottom: 5px; }
-        /* ============================================== */
-
         .btn-secondary { background-color: var(--secondary-color); color: white; }
         .btn-danger { background-color: var(--danger-color); color: white; }
         
@@ -191,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { toast.className = ''; }, 3000);
     };
 
-    // === NUOVO: Funzione renderInterventions con riepilogo dettagliato ===
+    // === FUNZIONE RENDER CON NOTE ===
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
         let totalMinutesSummary = 0;
@@ -200,9 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             dailyInterventions.forEach(interv => {
                 totalMinutesSummary += interv.totalMinutes;
-                
                 const truncate = (text, length) => (text && text.length > length) ? text.substring(0, length) + '...' : (text || 'N/D');
-                
                 let timeString = '';
                 if (interv.startAM && interv.endAM) timeString += `M: ${interv.startAM}-${interv.endAM}`;
                 if (interv.startPM && interv.endPM) timeString += `${timeString ? ', ' : ''}P: ${interv.startPM}-${interv.endPM}`;
@@ -215,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="details"><b>Ore:</b> ${interv.totalHours} (${timeString || 'N/D'})</span>
                         <span class="details"><b>Lavoro:</b> ${truncate(interv.workDone, 40)}</span>
                         <span class="details"><b>Materiali:</b> ${truncate(interv.materials, 40)}</span>
+                        <span class="details"><b>Note:</b> ${truncate(interv.notes, 40)}</span>
                     </div>
                     <div class="actions">
                         <button class="btn-secondary" data-id="${interv.id}">Modifica</button>
@@ -226,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
         saveToLocalStorage();
     };
-    // ======================================================================
+    // ===============================
 
     const resetForm = () => {
         clientInput.value = '';
