@@ -1,11 +1,14 @@
 {
-  "name": "Test App Ore",
-  "short_name": "Test Ore",
+  "name": "Report Interventi",
+  "short_name": "Report Ore",
   "start_url": ".",
   "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#007bff",
+  "description": "App per la gestione dei report di intervento giornalieri.",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }
