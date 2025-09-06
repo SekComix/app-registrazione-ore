@@ -124,22 +124,19 @@
 <div id="toast"></div>
 
 <script>
-// === NUOVO: Registrazione del Service Worker per la modalità offline ===
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then(registration => {
-        console.log('Service Worker registrato con successo:', registration);
+        console.log('Service Worker registrato con successo. Scope:', registration.scope);
       })
       .catch(error => {
         console.log('Registrazione Service Worker fallita:', error);
       });
   });
 }
-// =================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Il resto del codice JavaScript rimane identico
     const dateInput = document.getElementById('date');
     const clientInput = document.getElementById('client');
     const startAM = document.getElementById('start-am');
@@ -160,9 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalHoursSpan = document.getElementById('total-hours');
     const employeeNameInput = document.getElementById('employee-name');
     const summaryTotalSpan = document.getElementById('summary-total');
-
     let dailyInterventions = [];
-
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         let startTime = new Date(`1970-01-01T${start}:00`);
@@ -172,14 +167,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const diff = (endTime - startTime) / 60000;
         return diff >= 0 ? diff : 0;
     };
-
     const formatMinutes = (totalMinutes) => {
         if (totalMinutes <= 0) return '0h 0min';
         const hours = Math.floor(totalMinutes / 60);
         const minutes = Math.round(totalMinutes % 60);
         return `${hours}h ${minutes}min`;
     };
-    
     const updateTotals = () => {
         const minutesAM = calculateMinutes(startAM.value, endAM.value);
         const minutesPM = calculateMinutes(startPM.value, endPM.value);
@@ -187,9 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         subtotalPMSpan.textContent = formatMinutes(minutesPM);
         totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
     };
-
     [startAM, endAM, startPM, endPM].forEach(el => el.addEventListener('input', updateTotals));
-
     document.querySelectorAll('.clear-time-btn').forEach(button => {
         button.addEventListener('click', (event) => {
             event.preventDefault();
@@ -197,13 +188,11 @@ document.addEventListener('DOMContentLoaded', () => {
             updateTotals();
         });
     });
-
     const showToast = (message, type = 'success') => {
         toast.textContent = message;
         toast.className = `show ${type}`;
         setTimeout(() => { toast.className = ''; }, 3000);
     };
-
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
         let totalMinutesSummary = 0;
@@ -221,7 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
         saveToLocalStorage();
     };
-
     const resetForm = () => {
         clientInput.value = '';
         startAM.value = ''; endAM.value = '';
@@ -232,7 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
         addBtn.textContent = 'Aggiungi Intervento alla Giornata';
         updateTotals();
     };
-
     addBtn.addEventListener('click', () => {
         if (!clientInput.value || !dateInput.value) { return showToast('Cliente e Data sono obbligatori!', 'error'); }
         const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
@@ -260,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderInterventions();
         resetForm();
     });
-
     interventionsList.addEventListener('click', (e) => {
         const id = e.target.dataset.id;
         if (!id) return;
@@ -286,19 +272,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
     const saveToLocalStorage = () => {
         localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions));
         localStorage.setItem('employeeName', employeeNameInput.value);
     };
-
     const loadFromLocalStorage = () => {
         const savedName = localStorage.getItem('employeeName');
         if (savedName) employeeNameInput.value = savedName;
         const data = localStorage.getItem('dailyInterventions');
         if (data) dailyInterventions = JSON.parse(data);
     };
-    
     generateBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = employeeNameInput.value.trim();
@@ -346,7 +329,6 @@ document.addEventListener('DOMContentLoaded', () => {
             XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
         }
     });
-
     dateInput.value = new Date().toISOString().slice(0, 10);
     loadFromLocalStorage();
     renderInterventions();
