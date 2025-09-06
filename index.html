@@ -403,14 +403,18 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions));
     };
 
-    // Funzione per caricare i dati dal localStorage
+   // Funzione per caricare i dati dal localStorage
     const loadFromLocalStorage = () => {
-        const data = localStorage.getItem('dailyInterventions');
-        if (data) {
-            dailyInterventions = JSON.parse(data);
-            renderInterventions();
-        }
-    };
+    const savedName = localStorage.getItem('employeeName');
+    if (savedName) {
+        employeeNameInput.value = savedName;
+    }
+    const data = localStorage.getItem('dailyInterventions');
+    if (data) {
+        dailyInterventions = JSON.parse(data);
+        renderInterventions();
+    }
+};
     
     // --- FUNZIONALITÀ DI GENERAZIONE REPORT ---
 generateBtn.addEventListener('click', async () => {
