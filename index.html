@@ -189,37 +189,44 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const renderInterventions = () => {
-        interventionsList.innerHTML = '';
-        let totalMinutesSummary = 0;
-        if (dailyInterventions.length === 0) {
-            interventionsList.innerHTML = '<p>Nessun intervento aggiunto per oggi.</p>';
-        } else {
-            dailyInterventions.forEach(interv => {
-                totalMinutesSummary += interv.totalMinutes;
-                const truncate = (text, length) => (text && text.length > length) ? text.substring(0, length) + '...' : (text || 'N/D');
-                let timeString = '';
-                if (interv.startAM && interv.endAM) timeString += `M: ${interv.startAM}-${interv.endAM}`;
-                if (interv.startPM && interv.endPM) timeString += `${timeString ? ', ' : ''}P: ${interv.startPM}-${interv.endPM}`;
-                const item = document.createElement('div');
-                item.className = 'intervention-item';
-                item.innerHTML = `
-                    <div class="info">
-                        <span class="client">${interv.client}</span>
-                        <span class="details"><b>Ore:</b> ${interv.totalHours} (${timeString || 'N/D'})</span>
-                        <span class="details"><b>Lavoro:</b> ${truncate(interv.workDone, 40)}</span>
-                        <span class="details"><b>Materiali:</b> ${truncate(interv.materials, 40)}</span>
-                        <span class="details"><b>Note:</b> ${truncate(interv.notes, 40)}</span>
-                    </div>
-                    <div class="actions">
-                        <button class="btn-secondary" data-id="${interv.id}">Modifica</button>
-                        <button class="btn-danger" data-id="${interv.id}">Elimina</button>
-                    </div>`;
-                interventionsList.appendChild(item);
-            });
-        }
-        summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
-        saveToLocalStorage();
-    };
+    interventionsList.innerHTML = '';
+    let totalMinutesSummary = 0;
+    if (dailyInterventions.length === 0) {
+        interventionsList.innerHTML = '<p>Nessun intervento aggiunto per oggi.</p>';
+    } else {
+        dailyInterventions.forEach(interv => {
+            totalMinutesSummary += interv.totalMinutes;
+            
+            let timeString = '';
+            if (interv.startAM && interv.endAM) timeString += `M: ${interv.startAM}-${interv.endAM}`;
+            if (interv.startPM && interv.endPM) timeString += `${timeString ? ', ' : ''}P: ${interv.startPM}-${interv.endPM}`;
+            
+            const item = document.createElement('div');
+            item.className = 'intervention-item';
+            
+            // Ho reso il codice più semplice e robusto
+            const workText = interv.workDone ? interv.workDone.substring(0, 40) + (interv.workDone.length > 40 ? '...' : '') : 'N/D';
+            const materialsText = interv.materials ? interv.materials.substring(0, 40) + (interv.materials.length > 40 ? '...' : '') : 'N/D';
+            const notesText = interv.notes ? interv.notes.substring(0, 40) + (interv.notes.length > 40 ? '...' : '') : 'N/D';
+
+            item.innerHTML = `
+                <div class="info">
+                    <span class="client">${interv.client}</span>
+                    <span class="details"><b>Ore:</b> ${interv.totalHours} (${timeString || 'N/D'})</span>
+                    <span class="details"><b>Lavoro:</b> ${workText}</span>
+                    <span class="details"><b>Materiali:</b> ${materialsText}</span>
+                    <span class="details"><b>Note:</b> ${notesText}</span>
+                </div>
+                <div class="actions">
+                    <button class="btn-secondary" data-id="${interv.id}">Modifica</button>
+                    <button class="btn-danger" data-id="${interv.id}">Elimina</button>
+                </div>`;
+            interventionsList.appendChild(item);
+        });
+    }
+    summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
+    saveToLocalStorage();
+};
 
     const resetForm = () => {
         clientInput.value = '';
