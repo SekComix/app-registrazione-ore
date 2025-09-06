@@ -32,11 +32,14 @@
         .logo-container img { width: 80px; height: auto; border-radius: 15px; }
         .logo-container h1 { color: var(--primary-color); margin: 5px 0 20px 0; font-size: 1.5em; }
         .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        h2, h4 { color: var(--primary-color); }
-        h4 { border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 20px;}
+        h2, h4, .section-title { color: var(--primary-color); }
+        h4, .section-title { border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 20px;}
+        .section-title { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; }
+        
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
         input, textarea, select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; background-color: #fff; }
+        textarea { border: 2px solid #ced4da; } /* Bordo più evidente */
         
         input.error, textarea.error, select.error {
             border: 2px solid var(--danger-color);
@@ -75,10 +78,14 @@
         .intervention-item .info .client { font-weight: bold; font-size: 1.1em; }
         .intervention-item .info .details { font-size: 0.9em; color: #6c757d; }
         .intervention-item .info .details b { color: #495057; }
+        .intervention-item .expand-icon { transition: transform 0.3s; font-size: 1.5em; color: var(--secondary-color); }
+        .intervention-item.expanded .expand-icon { transform: rotate(180deg); }
+        
         .intervention-item .full-details { display: none; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px; }
         .intervention-item .full-details p { margin: 0 0 10px 0; white-space: pre-wrap; word-break: break-word; }
         .intervention-item.expanded .full-details { display: block; }
         .intervention-item.expanded .details { display: none; }
+        
         .intervention-item .actions { display: flex; flex-direction: column; align-items: flex-end; padding-left: 10px; }
         .intervention-item .actions button { width: auto; padding: 8px 12px; font-size: 14px; margin-bottom: 5px; }
 
@@ -116,11 +123,13 @@
             <div class="subtotal">Subtotale: <span id="subtotal-pm">0h 0min</span></div>
         </div>
         <div id="total-hours">Totale Ore: 0h 0min</div>
-        <div class="form-group"><label for="work-done">Lavoro Svolto</label><textarea id="work-done" rows="4"></textarea></div>
-        <h4>Materiali Utilizzati</h4>
-        <div id="materials-container"></div>
-        <button id="add-material-btn" class="btn-secondary">+</button>
-        <div class="form-group"><label for="notes">Note</label><textarea id="notes" rows="2"></textarea></div>
+        <div class="form-group"><label for="work-done" class="section-title">Lavoro Svolto</label><textarea id="work-done" rows="4"></textarea></div>
+        <div class="form-group">
+            <h4 class="section-title">Materiali Utilizzati</h4>
+            <div id="materials-container"></div>
+            <button id="add-material-btn" class="btn-secondary">+</button>
+        </div>
+        <div class="form-group"><label for="notes" class="section-title">Note</label><textarea id="notes" rows="2"></textarea></div>
         <button id="add-intervention-btn" class="btn-primary">Aggiungi Rapporto</button>
     </div>
     <div class="card" id="summary-card">
@@ -141,6 +150,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 document.addEventListener('DOMContentLoaded', () => {
+    // ... (tutto il codice JS rimane qui)
+    // Ho spostato tutto il JS in un blocco unico per facilitare la copia.
     const allInputs = {
         date: document.getElementById('date'),
         client: document.getElementById('client'),
@@ -184,14 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     Object.values(allInputs).forEach(el => {
         const isTextField = el.type === 'text' || el.tagName === 'TEXTAREA';
-        if (isTextField) {
-            el.addEventListener('input', () => el.classList.remove('error'));
-        } else if (el.type === 'time') {
-            el.addEventListener('input', () => {
-                el.classList.remove('error');
-                updateTotals();
-            });
-        }
+        if (isTextField) { el.addEventListener('input', () => el.classList.remove('error')); }
+        else if (el.type === 'time') { el.addEventListener('input', () => { el.classList.remove('error'); updateTotals(); }); }
     });
     document.querySelectorAll('.clear-time-btn').forEach(button => {
         button.addEventListener('click', (event) => {
@@ -270,9 +275,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="details"><b>Ore:</b> ${interv.totalHours}</span>
                             <span class="details"><b>Lavoro:</b> ${(interv.workDone || '').substring(0,25)}...</span>
                         </div>
-                        <div class="actions">
-                            <button class="btn-secondary" data-id="${interv.id}" data-action="edit">Modifica</button>
-                            <button class="btn-danger" data-id="${interv.id}" data-action="delete">Elimina</button>
+                        <div style="display: flex; align-items: center;">
+                           <span class="expand-icon">&#9660;</span>
+                           <div class="actions">
+                              <button class="btn-secondary" data-id="${interv.id}" data-action="edit">Modifica</button>
+                              <button class="btn-danger" data-id="${interv.id}" data-action="delete">Elimina</button>
+                           </div>
                         </div>
                     </div>
                     <div class="full-details">
@@ -306,7 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!field.value.trim()) { field.classList.add('error'); textIsValid = false; }
         });
         if (!textIsValid) return showToast('Compila i campi evidenziati!', 'error');
-        
         const { startAM, endAM, startPM, endPM } = allInputs;
         if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) {
             startAM.classList.add('error'); endAM.classList.add('error');
@@ -320,7 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
             endAM.classList.add('error'); startPM.classList.add('error');
             return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error');
         }
-
         const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
         if (totalMinutes <= 0) return showToast('Inserire almeno un intervallo di ore valido.', 'error');
         
@@ -352,7 +358,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = e.target;
         const action = target.dataset.action;
         const id = target.dataset.id;
-        
         if (action === 'delete') {
             e.stopPropagation();
             dailyInterventions = dailyInterventions.filter(i => i.id != id);
@@ -454,11 +459,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         URL.revokeObjectURL(pdfUrl);
         showToast('PDF salvato nei Download!');
+        
+        const emailBody = `In allegato il report interventi del ${reportDate} compilato da ${employeeName}.\n\nInviare a: cominellis57@gmail.com`; // <--- CAMBIA QUI L'EMAIL
         const pdfFile = new File([pdfBlob], `${fileNameBase}.pdf`, { type: 'application/pdf' });
         const excelFile = new File([excelBlob], `${fileNameBase}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        
         if (navigator.canShare && navigator.canShare({ files: [pdfFile, excelFile] })) {
             try {
-                await navigator.share({ files: [pdfFile, excelFile], title: `Report Interventi ${reportDate} - ${employeeName}`, text: `In allegato il report interventi del ${reportDate} compilato da ${employeeName}.`});
+                await navigator.share({ files: [pdfFile, excelFile], title: `Report Interventi ${reportDate} - ${employeeName}`, text: emailBody });
                 if (confirm("Report inviato. Vuoi cancellare la lista degli interventi per oggi?")) {
                     dailyInterventions = [];
                     localStorage.removeItem('dailyInterventions');
