@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Ore Semplice</title>
+    <style>body{font-family: Arial, sans-serif; padding: 20px;}</style>
+</head>
+<body>
+    <h1>Test App Ore</h1>
+    <p>Se vedi questa pagina, la pubblicazione sta funzionando!</p>
+    <input type="time" id="start">
+    <input type="time" id="end">
+    <button id="calc">Calcola</button>
+    <p id="result"></p>
+    <script>
+        document.getElementById('calc').onclick = function() {
+            const start = document.getElementById('start').value;
+            const end = document.getElementById('end').value;
+            if(start && end) {
+                const diff = new Date(`1970-01-01T${end}`) - new Date(`1970-01-01T${start}`);
+                document.getElementById('result').innerText = `Durata: ${diff / 3600000} ore.`;
+            }
+        };
+    </script>
+</body>
+</html>
