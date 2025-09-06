@@ -38,12 +38,10 @@
         label { display: block; margin-bottom: 8px; font-weight: 600; }
         input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
         
-        /* === NUOVO: Stile per i campi obbligatori non compilati === */
         input.error, textarea.error {
-            border-color: var(--danger-color);
-            background-color: #fbe9e7;
+            border: 2px solid var(--danger-color);
+            background-color: #fff0f0;
         }
-        /* ========================================================== */
 
         .time-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: center; }
         .time-input-wrapper { position: relative; display: flex; align-items: center; }
@@ -216,21 +214,22 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTotals();
     };
     addBtn.addEventListener('click', () => {
-        // === NUOVO: Logica di validazione ===
-        const requiredFields = [allInputs.employeeName, allInputs.client, allInputs.workDone];
+        const requiredFields = {
+            "Il Tuo Nome": allInputs.employeeName,
+            "Cliente": allInputs.client,
+            "Lavoro Svolto": allInputs.workDone
+        };
         let isValid = true;
-        requiredFields.forEach(field => {
+        Object.values(requiredFields).forEach(field => field.classList.remove('error'));
+        for (const [key, field] of Object.entries(requiredFields)) {
             if (!field.value.trim()) {
                 field.classList.add('error');
                 isValid = false;
-            } else {
-                field.classList.remove('error');
             }
-        });
+        }
         if (!isValid) {
             return showToast('Compila i campi evidenziati!', 'error');
         }
-        // ===================================
         const totalMinutes = calculateMinutes(allInputs.startAM.value, allInputs.endAM.value) + calculateMinutes(allInputs.startPM.value, allInputs.endPM.value);
         if (totalMinutes <= 0) { return showToast('Inserire almeno un intervallo di ore valido.', 'error'); }
         const intervention = {
@@ -291,25 +290,90 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = localStorage.getItem('dailyInterventions');
         if (data) dailyInterventions = JSON.parse(data);
     };
+
+    // === NUOVO: Funzione PDF migliorata e dettagliata ===
     generateBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
-        if (!employeeName) return showToast('Per favore, inserisci il tuo nome.', 'error');
+        if (!employeeName) {
+            allInputs.employeeName.classList.add('error');
+            return showToast('Per favore, inserisci il tuo nome.', 'error');
+        } else {
+            allInputs.employeeName.classList.remove('error');
+        }
+        
         const reportDate = dailyInterventions[0].date;
         const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}`;
+        
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        let yPos = 15;
-        doc.setFontSize(18); doc.text(`Report Interventi del ${reportDate}`, 105, yPos, { align: 'center' }); yPos += 8;
-        doc.setFontSize(12); doc.text(`Operatore: ${employeeName}`, 105, yPos, { align: 'center' }); yPos += 15;
-        dailyInterventions.forEach(interv => {
-            doc.setFontSize(14); doc.text(`Cliente: ${interv.client}`, 14, yPos); yPos += 8;
-            doc.setFontSize(10); doc.text(`Totale Ore: ${interv.totalHours}`, 14, yPos); yPos += 6;
-            doc.text(`Lavoro Svolto: ${interv.workDone || 'N/D'}`, 14, yPos, { maxWidth: 180 }); yPos += 15;
-            doc.text(`Materiali: ${interv.materials || 'N/D'}`, 14, yPos, { maxWidth: 180 }); yPos += 15;
-            doc.text(`Note: ${interv.notes || 'N/D'}`, 14, yPos, { maxWidth: 180 }); yPos += 15;
-            doc.line(14, yPos, 196, yPos); yPos += 10;
+        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+        let yPos = 40;
+        const pageHeight = doc.internal.pageSize.height;
+        const margin = 40;
+
+        const addHeader = () => {
+            doc.setFontSize(22);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Rapporto di Intervento Giornaliero`, doc.internal.pageSize.width / 2, yPos, { align: 'center' });
+            yPos += 30;
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Data: ${reportDate}`, margin, yPos);
+            doc.text(`Operatore: ${employeeName}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' });
+            yPos += 25;
+            doc.setLineWidth(1.5);
+            doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos);
+            yPos += 20;
+        };
+
+        addHeader();
+
+        dailyInterventions.forEach((interv, index) => {
+            const checkPageBreak = (spaceNeeded) => {
+                if (yPos + spaceNeeded > pageHeight - margin) {
+                    doc.addPage();
+                    yPos = margin;
+                    addHeader();
+                }
+            };
+            
+            checkPageBreak(120); // Spazio minimo per un nuovo intervento
+
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos);
+            yPos += 20;
+
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            
+            let timeString = '';
+            if (interv.startAM && interv.endAM) timeString += `Mattino: ${interv.startAM} - ${interv.endAM}`;
+            if (interv.startPM && interv.endPM) timeString += `${timeString ? '  |  ' : ''}Pomeriggio: ${interv.startPM} - ${interv.endPM}`;
+            doc.text(`Orari: ${timeString || 'N/D'}`, margin, yPos);
+            doc.text(`Ore Totali: ${interv.totalHours}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' });
+            yPos += 20;
+
+            const addSection = (title, content) => {
+                if (content) {
+                    doc.setFont(undefined, 'bold');
+                    doc.text(title, margin, yPos);
+                    yPos += 12;
+                    doc.setFont(undefined, 'normal');
+                    const textLines = doc.splitTextToSize(content, doc.internal.pageSize.width - margin * 2);
+                    checkPageBreak(textLines.length * 12);
+                    doc.text(textLines, margin, yPos);
+                    yPos += (textLines.length * 12) + 10;
+                }
+            };
+
+            addSection('Lavoro Svolto:', interv.workDone);
+            addSection('Materiali Utilizzati:', interv.materials);
+            addSection('Note Aggiuntive:', interv.notes);
+
+            yPos += 15;
         });
+
         const pdfBlob = doc.output('blob');
         const excelData = dailyInterventions.map(i => ({ Operatore: employeeName, Data: i.date, Cliente: i.client, Inizio_Mattino: i.startAM, Fine_Mattino: i.endAM, Inizio_Pomeriggio: i.startPM, Fine_Pomeriggio: i.endPM, Ore_Totali: i.totalHours, Lavoro_Svolto: i.workDone, Materiali: i.materials, Note: i.notes }));
         const ws = XLSX.utils.json_to_sheet(excelData);
@@ -317,12 +381,14 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.utils.book_append_sheet(wb, ws, "Interventi");
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
         const excelBlob = new Blob([wbout], { type: 'application/octet-stream' });
+        
         const pdfUrl = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
         a.href = pdfUrl; a.download = `${fileNameBase}.pdf`;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         URL.revokeObjectURL(pdfUrl);
         showToast('PDF salvato nei Download!');
+
         const pdfFile = new File([pdfBlob], `${fileNameBase}.pdf`, { type: 'application/pdf' });
         const excelFile = new File([excelBlob], `${fileNameBase}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         if (navigator.canShare && navigator.canShare({ files: [pdfFile, excelFile] })) {
@@ -339,6 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
             XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
         }
     });
+
     allInputs.date.value = new Date().toISOString().slice(0, 10);
     loadFromLocalStorage();
     renderInterventions();
