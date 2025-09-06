@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const excelBlob = new Blob([wbout], { type: 'application/octet-stream' });
         const pdfFile = new File([pdfBlob], `${fileNameBase}.pdf`, { type: 'application/pdf' });
         const excelFile = new File([excelBlob], `${fileNameBase}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.sheet' });
-        const emailBody = `In allegato il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(Inviare a: tua-email@esempio.com)`; // <--- CAMBIA QUI L'EMAIL
+        const emailBody = `In allegato il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(Inviare a: cominellis57@gmail.com)`; // <--- CAMBIA QUI L'EMAIL
         
         try {
             if (!navigator.canShare || !navigator.canShare({ files: [pdfFile, excelFile] })) {
