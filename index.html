@@ -39,34 +39,9 @@
         input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         .time-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: center; }
         
-        /* === NUOVO: Stile per il contenitore dell'input ora e la X === */
-        .time-input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-        .clear-time-btn {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: #e9ecef;
-            color: #495057;
-            border: none;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            display: none; /* Nascosto di default */
-            line-height: 24px;
-            text-align: center;
-        }
-        .time-input-wrapper input:not(:placeholder-shown) + .clear-time-btn {
-            display: inline-block; /* Mostra la X solo se c'è del testo */
-        }
-        /* ============================================================= */
+        .time-input-wrapper { position: relative; display: flex; align-items: center; }
+        .clear-time-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background-color: #e9ecef; color: #495057; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; font-weight: bold; cursor: pointer; display: none; line-height: 24px; text-align: center; }
+        .time-input-wrapper input:not(:placeholder-shown) + .clear-time-btn { display: inline-block; }
 
         .subtotal { text-align: right; font-weight: bold; font-size: 1.1em; grid-column: 1 / -1; }
         #total-hours { font-size: 1.5em; font-weight: bold; color: var(--success-color); text-align: center; margin: 20px 0; }
@@ -74,7 +49,28 @@
         button:active { transform: scale(0.98); }
         .btn-primary { background-color: var(--primary-color); color: white; }
         .btn-success { background-color: var(--success-color); color: white; }
-        #interventions-list .intervention-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; }
+        
+        /* === NUOVO: Stile per il riepilogo e animazione === */
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        #summary-total {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--success-color);
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        /* ================================================ */
+        
+        #interventions-list .intervention-item {
+            display: flex; justify-content: space-between; align-items: center; padding: 15px;
+            border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px;
+            animation: fadeIn 0.5s ease-out; /* Applica l'animazione */
+        }
         .intervention-item .info { flex-grow: 1; }
         .intervention-item .info span { display: block; }
         .intervention-item .info .client { font-weight: bold; }
@@ -114,42 +110,16 @@
         </div>
         <h4>Mattino</h4>
         <div class="time-section">
-            <!-- === NUOVO: Struttura HTML per input con la X === -->
-            <div>
-                <label for="start-am">Ora Inizio</label>
-                <div class="time-input-wrapper">
-                    <input type="time" id="start-am" placeholder=" ">
-                    <button class="clear-time-btn" data-target="start-am">&times;</button>
-                </div>
-            </div>
-            <div>
-                <label for="end-am">Ora Fine</label>
-                <div class="time-input-wrapper">
-                    <input type="time" id="end-am" placeholder=" ">
-                    <button class="clear-time-btn" data-target="end-am">&times;</button>
-                </div>
-            </div>
+            <div><label for="start-am">Ora Inizio</label><div class="time-input-wrapper"><input type="time" id="start-am" placeholder=" "><button class="clear-time-btn" data-target="start-am">&times;</button></div></div>
+            <div><label for="end-am">Ora Fine</label><div class="time-input-wrapper"><input type="time" id="end-am" placeholder=" "><button class="clear-time-btn" data-target="end-am">&times;</button></div></div>
             <div class="subtotal">Subtotale: <span id="subtotal-am">0h 0min</span></div>
         </div>
         <h4>Pomeriggio</h4>
         <div class="time-section">
-            <div>
-                <label for="start-pm">Ora Inizio</label>
-                <div class="time-input-wrapper">
-                    <input type="time" id="start-pm" placeholder=" ">
-                    <button class="clear-time-btn" data-target="start-pm">&times;</button>
-                </div>
-            </div>
-            <div>
-                <label for="end-pm">Ora Fine</label>
-                <div class="time-input-wrapper">
-                    <input type="time" id="end-pm" placeholder=" ">
-                    <button class="clear-time-btn" data-target="end-pm">&times;</button>
-                </div>
-            </div>
+            <div><label for="start-pm">Ora Inizio</label><div class="time-input-wrapper"><input type="time" id="start-pm" placeholder=" "><button class="clear-time-btn" data-target="start-pm">&times;</button></div></div>
+            <div><label for="end-pm">Ora Fine</label><div class="time-input-wrapper"><input type="time" id="end-pm" placeholder=" "><button class="clear-time-btn" data-target="end-pm">&times;</button></div></div>
             <div class="subtotal">Subtotale: <span id="subtotal-pm">0h 0min</span></div>
         </div>
-        <!-- =================================================== -->
         <div id="total-hours">Totale Ore: 0h 0min</div>
         <div class="form-group"><label for="work-done">Lavoro Svolto</label><textarea id="work-done" rows="4"></textarea></div>
         <div class="form-group"><label for="materials">Materiali</label><textarea id="materials" rows="2"></textarea></div>
@@ -158,8 +128,13 @@
     </div>
 
     <div class="card" id="summary-card">
-        <h2>Riepilogo Giornata</h2>
-        <div id="interventions-list"></div>
+        <!-- === NUOVO: Intestazione con Totale Generale === -->
+        <div class="summary-header">
+            <h2>Riepilogo Giornata</h2>
+            <div id="summary-total">Totale: 0h 0min</div>
+        </div>
+        <!-- ============================================= -->
+        <div id="interventions-list" style="margin-top: 15px;"></div>
         <div class="form-group" style="margin-top: 20px;"><button id="generate-report-btn" class="btn-success">Invia e Salva Report</button></div>
     </div>
 </div>
@@ -168,7 +143,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Riferimenti agli elementi del DOM (invariati)
+    // Riferimenti agli elementi del DOM
     const dateInput = document.getElementById('date');
     const clientInput = document.getElementById('client');
     const startAM = document.getElementById('start-am');
@@ -188,10 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const subtotalPMSpan = document.getElementById('subtotal-pm');
     const totalHoursSpan = document.getElementById('total-hours');
     const employeeNameInput = document.getElementById('employee-name');
+    const summaryTotalSpan = document.getElementById('summary-total'); // NUOVO
 
     let dailyInterventions = [];
 
-    // Funzioni di calcolo e formato (invariate)
+    // Funzioni di calcolo e formato
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         const startTime = new Date(`1970-01-01T${start}:00`);
@@ -213,24 +189,17 @@ document.addEventListener('DOMContentLoaded', () => {
         totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
     };
 
-    // Listener per i campi ora (invariato)
     [startAM, endAM, startPM, endPM].forEach(el => el.addEventListener('input', updateTotals));
 
-    // === NUOVO: Logica per i pulsanti "X" di pulizia ===
     document.querySelectorAll('.clear-time-btn').forEach(button => {
         button.addEventListener('click', (event) => {
-            event.preventDefault(); // Impedisce al form di inviarsi
+            event.preventDefault();
             const targetInputId = event.target.dataset.target;
-            const inputToClear = document.getElementById(targetInputId);
-            if (inputToClear) {
-                inputToClear.value = '';
-                updateTotals(); // Ricalcola i totali dopo aver pulito il campo
-            }
+            document.getElementById(targetInputId).value = '';
+            updateTotals();
         });
     });
-    // ======================================================
 
-    // Le altre funzioni (showToast, renderInterventions, resetForm, ecc.) rimangono invariate...
     const showToast = (message, type = 'success') => {
         toast.textContent = message;
         toast.className = `show ${type}`;
@@ -239,16 +208,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
+        let totalMinutesSummary = 0; // NUOVO: Contatore per il totale
         if (dailyInterventions.length === 0) {
             interventionsList.innerHTML = '<p>Nessun intervento aggiunto per oggi.</p>';
-            return;
+        } else {
+            dailyInterventions.forEach(interv => {
+                totalMinutesSummary += interv.totalMinutes; // NUOVO: Somma i minuti
+                const item = document.createElement('div');
+                item.className = 'intervention-item';
+                item.innerHTML = `<div class="info"><span class="client">${interv.client}</span><span>${interv.totalHours}</span></div><div class="actions"><button class="btn-secondary" data-id="${interv.id}">Modifica</button><button class="btn-danger" data-id="${interv.id}">Elimina</button></div>`;
+                interventionsList.appendChild(item);
+            });
         }
-        dailyInterventions.forEach(interv => {
-            const item = document.createElement('div');
-            item.className = 'intervention-item';
-            item.innerHTML = `<div class="info"><span class="client">${interv.client}</span><span>${interv.totalHours}</span></div><div class="actions"><button class="btn-secondary" data-id="${interv.id}">Modifica</button><button class="btn-danger" data-id="${interv.id}">Elimina</button></div>`;
-            interventionsList.appendChild(item);
-        });
+        summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`; // NUOVO: Aggiorna il totale generale
         saveToLocalStorage();
     };
 
@@ -328,7 +300,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = localStorage.getItem('dailyInterventions');
         if (data) dailyInterventions = JSON.parse(data);
     };
-
+    
+    // Funzione per generare i report (invariata)
     generateBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = employeeNameInput.value.trim();
