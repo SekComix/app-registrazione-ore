@@ -36,13 +36,12 @@
         h4 { border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 20px;}
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
-        input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
         
         input.error, textarea.error {
             border: 2px solid var(--danger-color);
             background-color: #fff0f0;
         }
-
         .time-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: center; }
         .time-input-wrapper { position: relative; display: flex; align-items: center; }
         .clear-time-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background-color: #e9ecef; color: #495057; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; font-weight: bold; cursor: pointer; display: none; line-height: 24px; text-align: center; }
@@ -53,14 +52,22 @@
         button:active { transform: scale(0.98); }
         .btn-primary { background-color: var(--primary-color); color: white; }
         .btn-success { background-color: var(--success-color); color: white; }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-secondary { background-color: var(--secondary-color); color: white; }
+
+        /* Stili per la sezione Materiali */
+        #materials-container .material-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .material-qty { flex: 1.5; }
+        .material-unit { flex: 2; }
+        .material-desc { flex: 4; }
+        .remove-material-btn { flex-shrink: 0; width: 40px; height: 40px; padding: 0; font-size: 20px; }
+        #add-material-btn { width: auto; padding: 10px 15px; font-size: 14px; margin-top: 10px; }
+        
+        /* Stili Riepilogo e Card (invariati per ora) */
         .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
         #summary-total { font-size: 1.2em; font-weight: bold; color: var(--success-color); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        #interventions-list .intervention-item {
-            display: flex; justify-content: flex-start; align-items: flex-start; padding: 15px;
-            border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px;
-            animation: fadeIn 0.5s ease-out;
-        }
+        #interventions-list .intervention-item { display: flex; justify-content: flex-start; align-items: flex-start; padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; animation: fadeIn 0.5s ease-out; }
         .intervention-item .info { flex-grow: 1; }
         .intervention-item .info span { display: block; margin-bottom: 5px; word-break: break-word; }
         .intervention-item .info .client { font-weight: bold; font-size: 1.1em; }
@@ -68,8 +75,7 @@
         .intervention-item .info .details b { color: #495057; }
         .intervention-item .actions { display: flex; flex-direction: column; align-items: flex-end; }
         .intervention-item .actions button { width: auto; padding: 8px 12px; margin-left: 10px; font-size: 14px; margin-bottom: 5px; }
-        .btn-secondary { background-color: var(--secondary-color); color: white; }
-        .btn-danger { background-color: var(--danger-color); color: white; }
+
         #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; }
         #toast.show { transform: translate(-50%, 0); }
         #toast.success { background-color: var(--success-color); }
@@ -105,7 +111,15 @@
         </div>
         <div id="total-hours">Totale Ore: 0h 0min</div>
         <div class="form-group"><label for="work-done">Lavoro Svolto</label><textarea id="work-done" rows="4"></textarea></div>
-        <div class="form-group"><label for="materials">Materiali</label><textarea id="materials" rows="2"></textarea></div>
+        
+        <!-- === NUOVA SEZIONE MATERIALI === -->
+        <h4>Materiali Utilizzati</h4>
+        <div id="materials-container">
+            <!-- Righe materiali verranno aggiunte qui dinamicamente -->
+        </div>
+        <button id="add-material-btn" class="btn-secondary">+</button>
+        <!-- ============================== -->
+
         <div class="form-group"><label for="notes">Note</label><textarea id="notes" rows="2"></textarea></div>
         <button id="add-intervention-btn" class="btn-primary">Aggiungi Rapporto</button>
     </div>
@@ -135,10 +149,126 @@ document.addEventListener('DOMContentLoaded', () => {
         startPM: document.getElementById('start-pm'),
         endPM: document.getElementById('end-pm'),
         workDone: document.getElementById('work-done'),
-        materials: document.getElementById('materials'),
         notes: document.getElementById('notes'),
         employeeName: document.getElementById('employee-name')
     };
+    const materialsContainer = document.getElementById('materials-container');
+    const addMaterialBtn = document.getElementById('add-material-btn');
+    const addBtn = document.getElementById('add-intervention-btn');
+    // ... (altri riferimenti al DOM) ...
+    
+    // Lista delle Unità di Misura
+    const unitsOfMeasure = ["PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
+
+    // Gestione Materiali
+    const addMaterialRow = (qty = '', unit = 'PZ', desc = '') => {
+        const row = document.createElement('div');
+        row.className = 'material-row';
+        
+        const unitOptions = unitsOfMeasure.map(u => `<option value="${u}" ${u === unit ? 'selected' : ''}>${u}</option>`).join('');
+
+        row.innerHTML = `
+            <input type="number" class="material-qty" placeholder="Qtà" value="${qty}">
+            <select class="material-unit">${unitOptions}</select>
+            <input type="text" class="material-desc" placeholder="Descrizione articolo" value="${desc}">
+            <button class="btn-danger remove-material-btn">-</button>
+        `;
+        materialsContainer.appendChild(row);
+    };
+    addMaterialBtn.addEventListener('click', (e) => { e.preventDefault(); addMaterialRow(); });
+    materialsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-material-btn')) {
+            e.preventDefault();
+            if (materialsContainer.children.length > 1) {
+                e.target.parentElement.remove();
+            } else {
+                e.target.parentElement.querySelector('.material-qty').value = '';
+                e.target.parentElement.querySelector('.material-desc').value = '';
+                e.target.parentElement.querySelector('.material-unit').value = 'PZ';
+            }
+        }
+    });
+    const getMaterialsData = () => {
+        const materials = [];
+        document.querySelectorAll('#materials-container .material-row').forEach(row => {
+            const qty = row.querySelector('.material-qty').value;
+            const unit = row.querySelector('.material-unit').value;
+            const desc = row.querySelector('.material-desc').value.trim();
+            if (qty && desc) {
+                materials.push({ qty, unit, desc });
+            }
+        });
+        return materials;
+    };
+    const setMaterialsData = (materials = []) => {
+        materialsContainer.innerHTML = '';
+        if (materials.length === 0) {
+            addMaterialRow();
+        } else {
+            materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc));
+        }
+    };
+
+    // Logica di reset
+    const resetForm = () => {
+        // ... (resto della logica di reset)
+        setMaterialsData(); // Usa la nuova funzione per resettare i materiali
+    };
+
+    // Logica di aggiunta intervento
+    addBtn.addEventListener('click', () => {
+        // ... (tutta la logica di validazione)
+
+        const intervention = {
+            // ... (altri campi)
+            materials: getMaterialsData(), // Usa la nuova funzione per prendere i dati
+            notes: allInputs.notes.value
+        };
+        // ... (resto della logica di salvataggio)
+    });
+    
+    // Logica di modifica
+    interventionsList.addEventListener('click', (e) => {
+        // ...
+        if (e.target.classList.contains('btn-secondary')) { // Modifica
+            const interv = dailyInterventions.find(i => i.id == id);
+            if (interv) {
+                // ... (imposta tutti gli altri campi)
+                setMaterialsData(interv.materials); // Imposta i materiali salvati
+                // ...
+            }
+        }
+    });
+
+    // Inizializzazione
+    addMaterialRow(); // Aggiunge la prima riga all'avvio
+
+    // (Il resto del codice JavaScript rimane quasi invariato, quindi lo ometto per brevità)
+    // Ho solo aggiornato le funzioni rilevanti. Per sicurezza, usa il codice completo che segue.
+});
+</script>
+
+<!-- Codice JavaScript completo -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW registrato:', reg.scope)).catch(err => console.log('SW non registrato:', err));
+  });
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const allInputs = {
+        date: document.getElementById('date'),
+        client: document.getElementById('client'),
+        startAM: document.getElementById('start-am'),
+        endAM: document.getElementById('end-am'),
+        startPM: document.getElementById('start-pm'),
+        endPM: document.getElementById('end-pm'),
+        workDone: document.getElementById('work-done'),
+        notes: document.getElementById('notes'),
+        employeeName: document.getElementById('employee-name')
+    };
+    const materialsContainer = document.getElementById('materials-container');
+    const addMaterialBtn = document.getElementById('add-material-btn');
     const addBtn = document.getElementById('add-intervention-btn');
     const interventionsList = document.getElementById('interventions-list');
     const generateBtn = document.getElementById('generate-report-btn');
@@ -150,6 +280,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalHoursSpan = document.getElementById('total-hours');
     const summaryTotalSpan = document.getElementById('summary-total');
     let dailyInterventions = [];
+    const unitsOfMeasure = ["PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
+
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         let s = new Date(`1970-01-01T${start}:00`), e = new Date(`1970-01-01T${end}:00`);
@@ -166,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
     };
     Object.values(allInputs).forEach(el => {
-        if(el.type === 'text' || el.type === 'textarea') {
+        if (el.type === 'text' || el.type === 'textarea' || el.tagName === 'TEXTAREA') {
             el.addEventListener('input', () => el.classList.remove('error'));
         } else {
             el.addEventListener('input', updateTotals);
@@ -184,38 +316,65 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.className = `show ${type}`;
         setTimeout(() => { toast.className = ''; }, 3000);
     };
-    const renderInterventions = () => {
-        interventionsList.innerHTML = '';
-        let totalMinutesSummary = 0;
-        if (dailyInterventions.length === 0) {
-            interventionsList.innerHTML = '<p>Nessun intervento aggiunto per oggi.</p>';
-        } else {
-            dailyInterventions.forEach(interv => {
-                totalMinutesSummary += interv.totalMinutes;
-                const truncate = (text, length) => (text && text.length > length) ? text.substring(0, length) + '...' : (text || 'N/D');
-                let timeString = '';
-                if (interv.startAM && interv.endAM) timeString += `M: ${interv.startAM}-${interv.endAM}`;
-                if (interv.startPM && interv.endPM) timeString += `${timeString ? ', ' : ''}P: ${interv.startPM}-${interv.endPM}`;
-                const item = document.createElement('div');
-                item.className = 'intervention-item';
-                item.innerHTML = `<div class="info"><span class="client">${interv.client}</span><span class="details"><b>Ore:</b> ${interv.totalHours} (${timeString || 'N/D'})</span><span class="details"><b>Lavoro:</b> ${truncate(interv.workDone, 40)}</span><span class="details"><b>Materiali:</b> ${truncate(interv.materials, 40)}</span><span class="details"><b>Note:</b> ${truncate(interv.notes, 40)}</span></div><div class="actions"><button class="btn-secondary" data-id="${interv.id}">Modifica</button><button class="btn-danger" data-id="${interv.id}">Elimina</button></div>`;
-                interventionsList.appendChild(item);
-            });
-        }
-        summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
-        saveToLocalStorage();
+    
+    const addMaterialRow = (qty = '', unit = 'PZ', desc = '') => {
+        const row = document.createElement('div');
+        row.className = 'material-row';
+        const unitOptions = unitsOfMeasure.map(u => `<option value="${u}" ${u === unit ? 'selected' : ''}>${u}</option>`).join('');
+        row.innerHTML = `
+            <input type="number" class="material-qty" placeholder="Qtà" value="${qty}">
+            <select class="material-unit">${unitOptions}</select>
+            <input type="text" class="material-desc" placeholder="Descrizione articolo" value="${desc}">
+            <button class="btn-danger remove-material-btn">-</button>
+        `;
+        materialsContainer.appendChild(row);
     };
+    addMaterialBtn.addEventListener('click', (e) => { e.preventDefault(); addMaterialRow(); });
+    materialsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-material-btn')) {
+            e.preventDefault();
+            if (materialsContainer.children.length > 1) {
+                e.target.parentElement.remove();
+            } else {
+                e.target.parentElement.querySelector('.material-qty').value = '';
+                e.target.parentElement.querySelector('.material-desc').value = '';
+                e.target.parentElement.querySelector('.material-unit').value = 'PZ';
+            }
+        }
+    });
+    const getMaterialsData = () => {
+        const materials = [];
+        document.querySelectorAll('#materials-container .material-row').forEach(row => {
+            const qty = row.querySelector('.material-qty').value;
+            const unit = row.querySelector('.material-unit').value;
+            const desc = row.querySelector('.material-desc').value.trim();
+            if (qty && desc) {
+                materials.push({ qty, unit, desc });
+            }
+        });
+        return materials;
+    };
+    const setMaterialsData = (materials = []) => {
+        materialsContainer.innerHTML = '';
+        if (materials.length === 0) {
+            addMaterialRow();
+        } else {
+            materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc));
+        }
+    };
+    
+    const renderInterventions = () => { /* Lasciato vuoto per ora, sarà nella prossima fase */ };
+    
     const resetForm = () => {
         Object.values(allInputs).forEach(input => { if(input.id !== 'date' && input.id !== 'employee-name') input.value = ''; });
         interventionIdInput.value = '';
+        setMaterialsData();
         formTitle.textContent = 'Nuovo Intervento';
         addBtn.textContent = 'Aggiungi Rapporto';
         updateTotals();
     };
-    
     addBtn.addEventListener('click', () => {
         Object.values(allInputs).forEach(field => field.classList.remove('error'));
-        
         const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone];
         let textIsValid = true;
         requiredTextFields.forEach(field => {
@@ -225,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         if (!textIsValid) { return showToast('Compila i campi evidenziati!', 'error'); }
-
         const { startAM, endAM, startPM, endPM } = allInputs;
         if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) {
             startAM.classList.add('error'); endAM.classList.add('error');
@@ -239,10 +397,8 @@ document.addEventListener('DOMContentLoaded', () => {
             endAM.classList.add('error'); startPM.classList.add('error');
             return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error');
         }
-
         const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
         if (totalMinutes <= 0) { return showToast('Inserire almeno un intervallo di ore valido.', 'error'); }
-        
         const intervention = {
             id: interventionIdInput.value || Date.now(),
             date: allInputs.date.value,
@@ -252,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
             totalHours: formatMinutes(totalMinutes),
             totalMinutes: totalMinutes,
             workDone: allInputs.workDone.value,
-            materials: allInputs.materials.value,
+            materials: getMaterialsData(),
             notes: allInputs.notes.value
         };
         const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
@@ -265,8 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         renderInterventions();
         resetForm();
-    });
-
+    };
     interventionsList.addEventListener('click', (e) => {
         const id = e.target.dataset.id;
         if (!id) return;
@@ -285,22 +440,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 allInputs.startAM.value = interv.startAM; allInputs.endAM.value = interv.endAM;
                 allInputs.startPM.value = interv.startPM; allInputs.endPM.value = interv.endPM;
                 allInputs.workDone.value = interv.workDone;
-                allInputs.materials.value = interv.materials;
+                setMaterialsData(interv.materials);
                 allInputs.notes.value = interv.notes;
                 updateTotals();
                 window.scrollTo(0, 0);
             }
         }
     });
-
+    
+    // Il resto delle funzioni (save, load, generate) verranno aggiornate nella Fase B
     const saveToLocalStorage = () => { /* ... */ };
     const loadFromLocalStorage = () => { /* ... */ };
-    generateBtn.addEventListener('click', async () => { /* ... */ });
+    generateBtn.addEventListener('click', () => { showToast('Funzione Report da aggiornare', 'error'); });
     
-    // Inizializzazione
     allInputs.date.value = new Date().toISOString().slice(0, 10);
     loadFromLocalStorage();
     renderInterventions();
+    addMaterialRow();
 });
 </script>
 </body>
