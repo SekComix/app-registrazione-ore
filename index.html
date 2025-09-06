@@ -38,38 +38,22 @@
         label { display: block; margin-bottom: 8px; font-weight: 600; }
         input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         .time-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: center; }
-        
         .time-input-wrapper { position: relative; display: flex; align-items: center; }
         .clear-time-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background-color: #e9ecef; color: #495057; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; font-weight: bold; cursor: pointer; display: none; line-height: 24px; text-align: center; }
         .time-input-wrapper input:not(:placeholder-shown) + .clear-time-btn { display: inline-block; }
-
         .subtotal { text-align: right; font-weight: bold; font-size: 1.1em; grid-column: 1 / -1; }
         #total-hours { font-size: 1.5em; font-weight: bold; color: var(--success-color); text-align: center; margin: 20px 0; }
         button { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
         button:active { transform: scale(0.98); }
         .btn-primary { background-color: var(--primary-color); color: white; }
         .btn-success { background-color: var(--success-color); color: white; }
-        
-        /* === NUOVO: Stile per il riepilogo e animazione === */
-        .summary-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 10px;
-        }
-        #summary-total {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: var(--success-color);
-        }
+        .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
+        #summary-total { font-size: 1.2em; font-weight: bold; color: var(--success-color); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        /* ================================================ */
-        
         #interventions-list .intervention-item {
             display: flex; justify-content: space-between; align-items: center; padding: 15px;
             border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px;
-            animation: fadeIn 0.5s ease-out; /* Applica l'animazione */
+            animation: fadeIn 0.5s ease-out;
         }
         .intervention-item .info { flex-grow: 1; }
         .intervention-item .info span { display: block; }
@@ -128,12 +112,10 @@
     </div>
 
     <div class="card" id="summary-card">
-        <!-- === NUOVO: Intestazione con Totale Generale === -->
         <div class="summary-header">
             <h2>Riepilogo Giornata</h2>
             <div id="summary-total">Totale: 0h 0min</div>
         </div>
-        <!-- ============================================= -->
         <div id="interventions-list" style="margin-top: 15px;"></div>
         <div class="form-group" style="margin-top: 20px;"><button id="generate-report-btn" class="btn-success">Invia e Salva Report</button></div>
     </div>
@@ -163,24 +145,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const subtotalPMSpan = document.getElementById('subtotal-pm');
     const totalHoursSpan = document.getElementById('total-hours');
     const employeeNameInput = document.getElementById('employee-name');
-    const summaryTotalSpan = document.getElementById('summary-total'); // NUOVO
+    const summaryTotalSpan = document.getElementById('summary-total');
 
     let dailyInterventions = [];
 
-    // Funzioni di calcolo e formato
+    // === NUOVO: Funzione di calcolo migliorata per la mezzanotte ===
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
-        const startTime = new Date(`1970-01-01T${start}:00`);
-        const endTime = new Date(`1970-01-01T${end}:00`);
-        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime()) || endTime < startTime) return 0;
-        return (endTime - startTime) / 60000;
+        let startTime = new Date(`1970-01-01T${start}:00`);
+        let endTime = new Date(`1970-01-01T${end}:00`);
+
+        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) return 0;
+
+        // Se l'ora di fine è minore di quella di inizio, aggiungi un giorno alla data di fine
+        if (endTime < startTime) {
+            endTime.setDate(endTime.getDate() + 1);
+        }
+
+        const diff = (endTime - startTime) / 60000; // Differenza in minuti
+        return diff >= 0 ? diff : 0;
     };
+    // =============================================================
+
     const formatMinutes = (totalMinutes) => {
         if (totalMinutes <= 0) return '0h 0min';
         const hours = Math.floor(totalMinutes / 60);
         const minutes = Math.round(totalMinutes % 60);
         return `${hours}h ${minutes}min`;
     };
+    
     const updateTotals = () => {
         const minutesAM = calculateMinutes(startAM.value, endAM.value);
         const minutesPM = calculateMinutes(startPM.value, endPM.value);
@@ -194,8 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.clear-time-btn').forEach(button => {
         button.addEventListener('click', (event) => {
             event.preventDefault();
-            const targetInputId = event.target.dataset.target;
-            document.getElementById(targetInputId).value = '';
+            document.getElementById(event.target.dataset.target).value = '';
             updateTotals();
         });
     });
@@ -208,19 +200,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
-        let totalMinutesSummary = 0; // NUOVO: Contatore per il totale
+        let totalMinutesSummary = 0;
         if (dailyInterventions.length === 0) {
             interventionsList.innerHTML = '<p>Nessun intervento aggiunto per oggi.</p>';
         } else {
             dailyInterventions.forEach(interv => {
-                totalMinutesSummary += interv.totalMinutes; // NUOVO: Somma i minuti
+                totalMinutesSummary += interv.totalMinutes;
                 const item = document.createElement('div');
                 item.className = 'intervention-item';
                 item.innerHTML = `<div class="info"><span class="client">${interv.client}</span><span>${interv.totalHours}</span></div><div class="actions"><button class="btn-secondary" data-id="${interv.id}">Modifica</button><button class="btn-danger" data-id="${interv.id}">Elimina</button></div>`;
                 interventionsList.appendChild(item);
             });
         }
-        summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`; // NUOVO: Aggiorna il totale generale
+        summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
         saveToLocalStorage();
     };
 
@@ -301,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) dailyInterventions = JSON.parse(data);
     };
     
-    // Funzione per generare i report (invariata)
     generateBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = employeeNameInput.value.trim();
