@@ -39,7 +39,7 @@
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
         input, textarea, select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; background-color: #fff; }
-        textarea { border: 2px solid #ced4da; } /* Bordo più evidente */
+        textarea { border: 2px solid #ced4da; }
         
         input.error, textarea.error, select.error {
             border: 2px solid var(--danger-color);
@@ -89,7 +89,7 @@
         .intervention-item .actions { display: flex; flex-direction: column; align-items: flex-end; padding-left: 10px; }
         .intervention-item .actions button { width: auto; padding: 8px 12px; font-size: 14px; margin-bottom: 5px; }
 
-        #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; }
+        #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; text-align: center;}
         #toast.show { transform: translate(-50%, 0); }
         #toast.success { background-color: var(--success-color); }
         #toast.error { background-color: var(--danger-color); }
@@ -150,17 +150,11 @@ if ('serviceWorker' in navigator) {
   });
 }
 document.addEventListener('DOMContentLoaded', () => {
-    // ... (tutto il codice JS rimane qui)
-    // Ho spostato tutto il JS in un blocco unico per facilitare la copia.
     const allInputs = {
-        date: document.getElementById('date'),
-        client: document.getElementById('client'),
-        startAM: document.getElementById('start-am'),
-        endAM: document.getElementById('end-am'),
-        startPM: document.getElementById('start-pm'),
-        endPM: document.getElementById('end-pm'),
-        workDone: document.getElementById('work-done'),
-        notes: document.getElementById('notes'),
+        date: document.getElementById('date'), client: document.getElementById('client'),
+        startAM: document.getElementById('start-am'), endAM: document.getElementById('end-am'),
+        startPM: document.getElementById('start-pm'), endPM: document.getElementById('end-pm'),
+        workDone: document.getElementById('work-done'), notes: document.getElementById('notes'),
         employeeName: document.getElementById('employee-name')
     };
     const materialsContainer = document.getElementById('materials-container');
@@ -177,7 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const summaryTotalSpan = document.getElementById('summary-total');
     let dailyInterventions = [];
     const unitsOfMeasure = ["", "PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
-
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         let s = new Date(`1970-01-01T${start}:00`), e = new Date(`1970-01-01T${end}:00`);
@@ -205,31 +198,24 @@ document.addEventListener('DOMContentLoaded', () => {
             updateTotals();
         });
     });
-    const showToast = (message, type = 'success') => {
+    const showToast = (message, type = 'success', duration = 3000) => {
         toast.textContent = message;
         toast.className = `show ${type}`;
-        setTimeout(() => { toast.className = ''; }, 3000);
+        setTimeout(() => { toast.className = ''; }, duration);
     };
-    
     const addMaterialRow = (qty = '', unit = '', desc = '') => {
         const row = document.createElement('div');
         row.className = 'material-row';
         const unitOptions = unitsOfMeasure.map(u => `<option value="${u}" ${u === unit ? 'selected' : ''}>${u || 'Seleziona...'}</option>`).join('');
-        row.innerHTML = `
-            <input type="number" class="material-qty" placeholder="Qtà" value="${qty}">
-            <select class="material-unit">${unitOptions}</select>
-            <input type="text" class="material-desc" placeholder="Descrizione articolo" value="${desc}">
-            <button class="btn-danger remove-material-btn">-</button>
-        `;
+        row.innerHTML = `<input type="number" class="material-qty" placeholder="Qtà" value="${qty}"><select class="material-unit">${unitOptions}</select><input type="text" class="material-desc" placeholder="Descrizione articolo" value="${desc}"><button class="btn-danger remove-material-btn">-</button>`;
         materialsContainer.appendChild(row);
     };
     addMaterialBtn.addEventListener('click', (e) => { e.preventDefault(); addMaterialRow(); });
     materialsContainer.addEventListener('click', (e) => {
         if (e.target.classList.contains('remove-material-btn')) {
             e.preventDefault();
-            if (materialsContainer.children.length > 1) {
-                e.target.parentElement.remove();
-            } else {
+            if (materialsContainer.children.length > 1) { e.target.parentElement.remove(); }
+            else {
                 e.target.parentElement.querySelector('.material-qty').value = '';
                 e.target.parentElement.querySelector('.material-desc').value = '';
                 e.target.parentElement.querySelector('.material-unit').value = '';
@@ -242,21 +228,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const qty = row.querySelector('.material-qty').value;
             const unit = row.querySelector('.material-unit').value;
             const desc = row.querySelector('.material-desc').value.trim();
-            if (qty && unit && desc) {
-                materials.push({ qty, unit, desc });
-            }
+            if (qty && unit && desc) { materials.push({ qty, unit, desc }); }
         });
         return materials;
     };
     const setMaterialsData = (materials = []) => {
         materialsContainer.innerHTML = '';
-        if (materials.length === 0) {
-            addMaterialRow();
-        } else {
-            materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc));
-        }
+        if (materials.length === 0) { addMaterialRow(); }
+        else { materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc)); }
     };
-    
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
         let totalMinutesSummary = 0;
@@ -296,7 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
         saveToLocalStorage();
     };
-    
     const resetForm = () => {
         Object.values(allInputs).forEach(input => { if (input.id !== 'date' && input.id !== 'employee-name') input.value = ''; });
         interventionIdInput.value = '';
@@ -305,55 +284,32 @@ document.addEventListener('DOMContentLoaded', () => {
         addBtn.textContent = 'Aggiungi Rapporto';
         updateTotals();
     };
-    
     addBtn.addEventListener('click', () => {
         Object.values(allInputs).forEach(field => field.classList.remove('error'));
         const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone];
         let textIsValid = true;
-        requiredTextFields.forEach(field => {
-            if (!field.value.trim()) { field.classList.add('error'); textIsValid = false; }
-        });
+        requiredTextFields.forEach(field => { if (!field.value.trim()) { field.classList.add('error'); textIsValid = false; } });
         if (!textIsValid) return showToast('Compila i campi evidenziati!', 'error');
         const { startAM, endAM, startPM, endPM } = allInputs;
-        if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) {
-            startAM.classList.add('error'); endAM.classList.add('error');
-            return showToast("Orario mattino incompleto.", 'error');
-        }
-        if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) {
-            startPM.classList.add('error'); endPM.classList.add('error');
-            return showToast("Orario pomeriggio incompleto.", 'error');
-        }
-        if (endAM.value && startPM.value && startPM.value < endAM.value) {
-            endAM.classList.add('error'); startPM.classList.add('error');
-            return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error');
-        }
+        if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) { startAM.classList.add('error'); endAM.classList.add('error'); return showToast("Orario mattino incompleto.", 'error'); }
+        if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) { startPM.classList.add('error'); endPM.classList.add('error'); return showToast("Orario pomeriggio incompleto.", 'error'); }
+        if (endAM.value && startPM.value && startPM.value < endAM.value) { endAM.classList.add('error'); startPM.classList.add('error'); return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error'); }
         const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
         if (totalMinutes <= 0) return showToast('Inserire almeno un intervallo di ore valido.', 'error');
-        
         const intervention = {
             id: interventionIdInput.value || Date.now(),
-            date: allInputs.date.value,
-            client: allInputs.client.value,
+            date: allInputs.date.value, client: allInputs.client.value,
             startAM: allInputs.startAM.value, endAM: allInputs.endAM.value,
             startPM: allInputs.startPM.value, endPM: allInputs.endPM.value,
-            totalHours: formatMinutes(totalMinutes),
-            totalMinutes: totalMinutes,
-            workDone: allInputs.workDone.value,
-            materials: getMaterialsData(),
-            notes: allInputs.notes.value
+            totalHours: formatMinutes(totalMinutes), totalMinutes: totalMinutes,
+            workDone: allInputs.workDone.value, materials: getMaterialsData(), notes: allInputs.notes.value
         };
         const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
-        if (existingIndex > -1) {
-            dailyInterventions[existingIndex] = intervention;
-            showToast('Intervento modificato!');
-        } else {
-            dailyInterventions.push(intervention);
-            showToast('Intervento aggiunto!');
-        }
+        if (existingIndex > -1) { dailyInterventions[existingIndex] = intervention; showToast('Intervento modificato!'); }
+        else { dailyInterventions.push(intervention); showToast('Intervento aggiunto!'); }
         renderInterventions();
         resetForm();
     });
-    
     interventionsList.addEventListener('click', (e) => {
         const target = e.target;
         const action = target.dataset.action;
@@ -370,12 +326,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 formTitle.textContent = 'Modifica Intervento';
                 addBtn.textContent = 'Salva Modifiche';
                 interventionIdInput.value = interv.id;
-                allInputs.date.value = interv.date;
-                allInputs.client.value = interv.client;
+                allInputs.date.value = interv.date; allInputs.client.value = interv.client;
                 allInputs.startAM.value = interv.startAM; allInputs.endAM.value = interv.endAM;
                 allInputs.startPM.value = interv.startPM; allInputs.endPM.value = interv.endPM;
-                allInputs.workDone.value = interv.workDone;
-                setMaterialsData(interv.materials);
+                allInputs.workDone.value = interv.workDone; setMaterialsData(interv.materials);
                 allInputs.notes.value = interv.notes;
                 updateTotals();
                 window.scrollTo(0, 0);
@@ -385,7 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item) item.classList.toggle('expanded');
         }
     });
-
     const saveToLocalStorage = () => {
         localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions));
         localStorage.setItem('employeeName', allInputs.employeeName.value);
@@ -396,16 +349,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = localStorage.getItem('dailyInterventions');
         if (data) dailyInterventions = JSON.parse(data);
     };
-    
     generateBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
-        if (!employeeName) {
-            allInputs.employeeName.classList.add('error');
-            return showToast('Per favore, inserisci il tuo nome.', 'error');
-        } else {
-            allInputs.employeeName.classList.remove('error');
-        }
+        if (!employeeName) { allInputs.employeeName.classList.add('error'); return showToast('Inserisci il tuo nome.', 'error'); }
+        else { allInputs.employeeName.classList.remove('error'); }
+        
         const reportDate = dailyInterventions[0].date;
         const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}`;
         const { jsPDF } = window.jspdf;
@@ -453,32 +402,34 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.utils.book_append_sheet(wb, ws, "Interventi");
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
         const excelBlob = new Blob([wbout], { type: 'application/octet-stream' });
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        const a = document.createElement('a');
-        a.href = pdfUrl; a.download = `${fileNameBase}.pdf`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(pdfUrl);
-        showToast('PDF salvato nei Download!');
-        
-        const emailBody = `In allegato il report interventi del ${reportDate} compilato da ${employeeName}.\n\nInviare a: cominellis57@gmail.com`; // <--- CAMBIA QUI L'EMAIL
         const pdfFile = new File([pdfBlob], `${fileNameBase}.pdf`, { type: 'application/pdf' });
-        const excelFile = new File([excelBlob], `${fileNameBase}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const excelFile = new File([excelBlob], `${fileNameBase}.xlsx`, { type: 'application/vnd.openxmlformats-officedocument.sheet' });
+        const emailBody = `In allegato il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(Inviare a: tua-email@esempio.com)`; // <--- CAMBIA QUI L'EMAIL
         
-        if (navigator.canShare && navigator.canShare({ files: [pdfFile, excelFile] })) {
-            try {
-                await navigator.share({ files: [pdfFile, excelFile], title: `Report Interventi ${reportDate} - ${employeeName}`, text: emailBody });
-                if (confirm("Report inviato. Vuoi cancellare la lista degli interventi per oggi?")) {
-                    dailyInterventions = [];
-                    localStorage.removeItem('dailyInterventions');
-                    renderInterventions();
-                }
-            } catch (error) { showToast('Condivisione annullata.', 'error'); }
-        } else {
-            showToast('Browser non supporta condivisione file. Salva i file e allegali.', 'error');
+        try {
+            if (!navigator.canShare || !navigator.canShare({ files: [pdfFile, excelFile] })) {
+                throw new Error("Condivisione file non supportata.");
+            }
+            await navigator.share({ files: [pdfFile, excelFile], title: `Report Interventi ${reportDate} - ${employeeName}`, text: emailBody });
+            showToast('Pannello di condivisione aperto!');
+            if (confirm("Report inviato? Vuoi cancellare la lista degli interventi?")) {
+                dailyInterventions = [];
+                localStorage.removeItem('dailyInterventions');
+                renderInterventions();
+            }
+        } catch (error) {
+            console.error('Share Error:', error);
+            showToast('Condivisione non riuscita. Salvo i file...', 'error', 5000);
+            // Fallback: scarica entrambi i file
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const aPdf = document.createElement('a');
+            aPdf.href = pdfUrl; aPdf.download = `${fileNameBase}.pdf`;
+            document.body.appendChild(aPdf); aPdf.click(); document.body.removeChild(aPdf);
+            URL.revokeObjectURL(pdfUrl);
             XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
+            showToast('PDF ed Excel salvati nei Download. Allegali manualmente a una email.', 'success', 6000);
         }
     });
-    
     allInputs.date.value = new Date().toISOString().slice(0, 10);
     loadFromLocalStorage();
     renderInterventions();
