@@ -36,7 +36,15 @@
         h4 { border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 20px;}
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
-        input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; }
+        
+        /* === NUOVO: Stile per i campi obbligatori non compilati === */
+        input.error, textarea.error {
+            border-color: var(--danger-color);
+            background-color: #fbe9e7;
+        }
+        /* ========================================================== */
+
         .time-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: center; }
         .time-input-wrapper { position: relative; display: flex; align-items: center; }
         .clear-time-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background-color: #e9ecef; color: #495057; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; font-weight: bold; cursor: pointer; display: none; line-height: 24px; text-align: center; }
@@ -50,7 +58,6 @@
         .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
         #summary-total { font-size: 1.2em; font-weight: bold; color: var(--success-color); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        
         #interventions-list .intervention-item {
             display: flex; justify-content: flex-start; align-items: flex-start; padding: 15px;
             border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px;
@@ -61,12 +68,10 @@
         .intervention-item .info .client { font-weight: bold; font-size: 1.1em; }
         .intervention-item .info .details { font-size: 0.9em; color: #6c757d; }
         .intervention-item .info .details b { color: #495057; }
-        
         .intervention-item .actions { display: flex; flex-direction: column; align-items: flex-end; }
         .intervention-item .actions button { width: auto; padding: 8px 12px; margin-left: 10px; font-size: 14px; margin-bottom: 5px; }
         .btn-secondary { background-color: var(--secondary-color); color: white; }
         .btn-danger { background-color: var(--danger-color); color: white; }
-        
         #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; }
         #toast.show { transform: translate(-50%, 0); }
         #toast.success { background-color: var(--success-color); }
@@ -82,7 +87,6 @@
         <img src="icon.svg" alt="Logo AM Impianti Elettrici">
         <h1>AM Impianti Elettrici di Maselli Andrea</h1>
     </div>
-
     <div class="card" id="form-card">
         <h2 id="form-title">Nuovo Intervento</h2>
         <input type="hidden" id="intervention-id">
@@ -105,9 +109,8 @@
         <div class="form-group"><label for="work-done">Lavoro Svolto</label><textarea id="work-done" rows="4"></textarea></div>
         <div class="form-group"><label for="materials">Materiali</label><textarea id="materials" rows="2"></textarea></div>
         <div class="form-group"><label for="notes">Note</label><textarea id="notes" rows="2"></textarea></div>
-        <button id="add-intervention-btn" class="btn-primary">AGGIUNGI RAPPORTO</button>
+        <button id="add-intervention-btn" class="btn-primary">Aggiungi Rapporto</button>
     </div>
-
     <div class="card" id="summary-card">
         <div class="summary-header">
             <h2>Riepilogo Giornata</h2>
@@ -117,28 +120,27 @@
         <div class="form-group" style="margin-top: 20px;"><button id="generate-report-btn" class="btn-success">Invia e Salva Report</button></div>
     </div>
 </div>
-
 <div id="toast"></div>
 
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => { console.log('Service Worker registrato:', registration.scope); })
-      .catch(error => { console.log('Registrazione SW fallita:', error); });
+    navigator.serviceWorker.register('/sw.js').then(reg => console.log('SW registrato:', reg.scope)).catch(err => console.log('SW non registrato:', err));
   });
 }
-
 document.addEventListener('DOMContentLoaded', () => {
-    const dateInput = document.getElementById('date');
-    const clientInput = document.getElementById('client');
-    const startAM = document.getElementById('start-am');
-    const endAM = document.getElementById('end-am');
-    const startPM = document.getElementById('start-pm');
-    const endPM = document.getElementById('end-pm');
-    const workDoneInput = document.getElementById('work-done');
-    const materialsInput = document.getElementById('materials');
-    const notesInput = document.getElementById('notes');
+    const allInputs = {
+        date: document.getElementById('date'),
+        client: document.getElementById('client'),
+        startAM: document.getElementById('start-am'),
+        endAM: document.getElementById('end-am'),
+        startPM: document.getElementById('start-pm'),
+        endPM: document.getElementById('end-pm'),
+        workDone: document.getElementById('work-done'),
+        materials: document.getElementById('materials'),
+        notes: document.getElementById('notes'),
+        employeeName: document.getElementById('employee-name')
+    };
     const addBtn = document.getElementById('add-intervention-btn');
     const interventionsList = document.getElementById('interventions-list');
     const generateBtn = document.getElementById('generate-report-btn');
@@ -148,10 +150,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const subtotalAMSpan = document.getElementById('subtotal-am');
     const subtotalPMSpan = document.getElementById('subtotal-pm');
     const totalHoursSpan = document.getElementById('total-hours');
-    const employeeNameInput = document.getElementById('employee-name');
     const summaryTotalSpan = document.getElementById('summary-total');
     let dailyInterventions = [];
-
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         let startTime = new Date(`1970-01-01T${start}:00`);
@@ -168,13 +168,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${hours}h ${minutes}min`;
     };
     const updateTotals = () => {
-        const minutesAM = calculateMinutes(startAM.value, endAM.value);
-        const minutesPM = calculateMinutes(startPM.value, endPM.value);
+        const minutesAM = calculateMinutes(allInputs.startAM.value, allInputs.endAM.value);
+        const minutesPM = calculateMinutes(allInputs.startPM.value, allInputs.endPM.value);
         subtotalAMSpan.textContent = formatMinutes(minutesAM);
         subtotalPMSpan.textContent = formatMinutes(minutesPM);
         totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
     };
-    [startAM, endAM, startPM, endPM].forEach(el => el.addEventListener('input', updateTotals));
+    Object.values(allInputs).forEach(el => el.addEventListener('input', updateTotals));
     document.querySelectorAll('.clear-time-btn').forEach(button => {
         button.addEventListener('click', (event) => {
             event.preventDefault();
@@ -187,72 +187,63 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.className = `show ${type}`;
         setTimeout(() => { toast.className = ''; }, 3000);
     };
-
     const renderInterventions = () => {
-    interventionsList.innerHTML = '';
-    let totalMinutesSummary = 0;
-    if (dailyInterventions.length === 0) {
-        interventionsList.innerHTML = '<p>Nessun intervento aggiunto per oggi.</p>';
-    } else {
-        dailyInterventions.forEach(interv => {
-            totalMinutesSummary += interv.totalMinutes;
-            
-            let timeString = '';
-            if (interv.startAM && interv.endAM) timeString += `M: ${interv.startAM}-${interv.endAM}`;
-            if (interv.startPM && interv.endPM) timeString += `${timeString ? ', ' : ''}P: ${interv.startPM}-${interv.endPM}`;
-            
-            const item = document.createElement('div');
-            item.className = 'intervention-item';
-            
-            // Ho reso il codice più semplice e robusto
-            const workText = interv.workDone ? interv.workDone.substring(0, 40) + (interv.workDone.length > 40 ? '...' : '') : 'N/D';
-            const materialsText = interv.materials ? interv.materials.substring(0, 40) + (interv.materials.length > 40 ? '...' : '') : 'N/D';
-            const notesText = interv.notes ? interv.notes.substring(0, 40) + (interv.notes.length > 40 ? '...' : '') : 'N/D';
-
-            item.innerHTML = `
-                <div class="info">
-                    <span class="client">${interv.client}</span>
-                    <span class="details"><b>Ore:</b> ${interv.totalHours} (${timeString || 'N/D'})</span>
-                    <span class="details"><b>Lavoro:</b> ${workText}</span>
-                    <span class="details"><b>Materiali:</b> ${materialsText}</span>
-                    <span class="details"><b>Note:</b> ${notesText}</span>
-                </div>
-                <div class="actions">
-                    <button class="btn-secondary" data-id="${interv.id}">Modifica</button>
-                    <button class="btn-danger" data-id="${interv.id}">Elimina</button>
-                </div>`;
-            interventionsList.appendChild(item);
-        });
-    }
-    summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
-    saveToLocalStorage();
-};
-
+        interventionsList.innerHTML = '';
+        let totalMinutesSummary = 0;
+        if (dailyInterventions.length === 0) {
+            interventionsList.innerHTML = '<p>Nessun intervento aggiunto per oggi.</p>';
+        } else {
+            dailyInterventions.forEach(interv => {
+                totalMinutesSummary += interv.totalMinutes;
+                const truncate = (text, length) => (text && text.length > length) ? text.substring(0, length) + '...' : (text || 'N/D');
+                let timeString = '';
+                if (interv.startAM && interv.endAM) timeString += `M: ${interv.startAM}-${interv.endAM}`;
+                if (interv.startPM && interv.endPM) timeString += `${timeString ? ', ' : ''}P: ${interv.startPM}-${interv.endPM}`;
+                const item = document.createElement('div');
+                item.className = 'intervention-item';
+                item.innerHTML = `<div class="info"><span class="client">${interv.client}</span><span class="details"><b>Ore:</b> ${interv.totalHours} (${timeString || 'N/D'})</span><span class="details"><b>Lavoro:</b> ${truncate(interv.workDone, 40)}</span><span class="details"><b>Materiali:</b> ${truncate(interv.materials, 40)}</span><span class="details"><b>Note:</b> ${truncate(interv.notes, 40)}</span></div><div class="actions"><button class="btn-secondary" data-id="${interv.id}">Modifica</button><button class="btn-danger" data-id="${interv.id}">Elimina</button></div>`;
+                interventionsList.appendChild(item);
+            });
+        }
+        summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
+        saveToLocalStorage();
+    };
     const resetForm = () => {
-        clientInput.value = '';
-        startAM.value = ''; endAM.value = '';
-        startPM.value = ''; endPM.value = '';
-        workDoneInput.value = ''; materialsInput.value = ''; notesInput.value = '';
+        Object.values(allInputs).forEach(input => { if(input.id !== 'date' && input.id !== 'employee-name') input.value = ''; });
         interventionIdInput.value = '';
         formTitle.textContent = 'Nuovo Intervento';
-        addBtn.textContent = 'Aggiungi Intervento alla Giornata';
+        addBtn.textContent = 'Aggiungi Rapporto';
         updateTotals();
     };
     addBtn.addEventListener('click', () => {
-        if (!clientInput.value || !dateInput.value) { return showToast('Cliente e Data sono obbligatori!', 'error'); }
-        const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
+        // === NUOVO: Logica di validazione ===
+        const requiredFields = [allInputs.employeeName, allInputs.client, allInputs.workDone];
+        let isValid = true;
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('error');
+                isValid = false;
+            } else {
+                field.classList.remove('error');
+            }
+        });
+        if (!isValid) {
+            return showToast('Compila i campi evidenziati!', 'error');
+        }
+        // ===================================
+        const totalMinutes = calculateMinutes(allInputs.startAM.value, allInputs.endAM.value) + calculateMinutes(allInputs.startPM.value, allInputs.endPM.value);
         if (totalMinutes <= 0) { return showToast('Inserire almeno un intervallo di ore valido.', 'error'); }
         const intervention = {
             id: interventionIdInput.value || Date.now(),
-            date: dateInput.value,
-            client: clientInput.value,
-            startAM: startAM.value, endAM: endAM.value,
-            startPM: startPM.value, endPM: endPM.value,
+            date: allInputs.date.value,
+            client: allInputs.client.value,
+            startAM: allInputs.startAM.value, endAM: allInputs.endAM.value,
+            startPM: allInputs.startPM.value, endPM: allInputs.endPM.value,
             totalHours: formatMinutes(totalMinutes),
             totalMinutes: totalMinutes,
-            workDone: workDoneInput.value,
-            materials: materialsInput.value,
-            notes: notesInput.value
+            workDone: allInputs.workDone.value,
+            materials: allInputs.materials.value,
+            notes: allInputs.notes.value
         };
         const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
         if (existingIndex > -1) {
@@ -278,13 +269,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 formTitle.textContent = 'Modifica Intervento';
                 addBtn.textContent = 'Salva Modifiche';
                 interventionIdInput.value = interv.id;
-                dateInput.value = interv.date;
-                clientInput.value = interv.client;
-                startAM.value = interv.startAM; endAM.value = interv.endAM;
-                startPM.value = interv.startPM; endPM.value = interv.endPM;
-                workDoneInput.value = interv.workDone;
-                materialsInput.value = interv.materials;
-                notesInput.value = interv.notes;
+                allInputs.date.value = interv.date;
+                allInputs.client.value = interv.client;
+                allInputs.startAM.value = interv.startAM; allInputs.endAM.value = interv.endAM;
+                allInputs.startPM.value = interv.startPM; allInputs.endPM.value = interv.endPM;
+                allInputs.workDone.value = interv.workDone;
+                allInputs.materials.value = interv.materials;
+                allInputs.notes.value = interv.notes;
                 updateTotals();
                 window.scrollTo(0, 0);
             }
@@ -292,17 +283,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     const saveToLocalStorage = () => {
         localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions));
-        localStorage.setItem('employeeName', employeeNameInput.value);
+        localStorage.setItem('employeeName', allInputs.employeeName.value);
     };
     const loadFromLocalStorage = () => {
         const savedName = localStorage.getItem('employeeName');
-        if (savedName) employeeNameInput.value = savedName;
+        if (savedName) allInputs.employeeName.value = savedName;
         const data = localStorage.getItem('dailyInterventions');
         if (data) dailyInterventions = JSON.parse(data);
     };
     generateBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
-        const employeeName = employeeNameInput.value.trim();
+        const employeeName = allInputs.employeeName.value.trim();
         if (!employeeName) return showToast('Per favore, inserisci il tuo nome.', 'error');
         const reportDate = dailyInterventions[0].date;
         const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}`;
@@ -348,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
             XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
         }
     });
-    dateInput.value = new Date().toISOString().slice(0, 10);
+    allInputs.date.value = new Date().toISOString().slice(0, 10);
     loadFromLocalStorage();
     renderInterventions();
 });
