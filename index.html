@@ -124,8 +124,22 @@
 <div id="toast"></div>
 
 <script>
+// === NUOVO: Registrazione del Service Worker per la modalità offline ===
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('Service Worker registrato con successo:', registration);
+      })
+      .catch(error => {
+        console.log('Registrazione Service Worker fallita:', error);
+      });
+  });
+}
+// =================================================================
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Riferimenti agli elementi del DOM
+    // Il resto del codice JavaScript rimane identico
     const dateInput = document.getElementById('date');
     const clientInput = document.getElementById('client');
     const startAM = document.getElementById('start-am');
@@ -149,23 +163,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let dailyInterventions = [];
 
-    // === NUOVO: Funzione di calcolo migliorata per la mezzanotte ===
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         let startTime = new Date(`1970-01-01T${start}:00`);
         let endTime = new Date(`1970-01-01T${end}:00`);
-
         if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) return 0;
-
-        // Se l'ora di fine è minore di quella di inizio, aggiungi un giorno alla data di fine
-        if (endTime < startTime) {
-            endTime.setDate(endTime.getDate() + 1);
-        }
-
-        const diff = (endTime - startTime) / 60000; // Differenza in minuti
+        if (endTime < startTime) { endTime.setDate(endTime.getDate() + 1); }
+        const diff = (endTime - startTime) / 60000;
         return diff >= 0 ? diff : 0;
     };
-    // =============================================================
 
     const formatMinutes = (totalMinutes) => {
         if (totalMinutes <= 0) return '0h 0min';
