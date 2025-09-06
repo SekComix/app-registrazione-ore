@@ -1,4 +1,4 @@
-const CACHE_NAME = 'report-interventi-cache-v11'; // Ho aumentato la versione a v11
+const CACHE_NAME = 'report-interventi-cache-v12'; // Ho aumentato la versione a v12
 const urlsToCache = [
   '/',
   '/index.html',
