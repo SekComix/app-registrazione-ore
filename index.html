@@ -552,7 +552,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('PDF salvato nei Download!');
     });
     
-        sendReportBtn.addEventListener('click', async () => {
+            sendReportBtn.addEventListener('click', async () => {
+        if (sendReportBtn.disabled) return; // Evita doppi click
+
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
         if (!employeeName) {
@@ -560,20 +562,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return showToast('Inserisci il tuo nome per inviare.', 'error');
         }
 
-        // 1. Apri subito l'app di posta
-        const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
-        const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
-        const body = `Buongiorno,\n\nsto per allegare il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel si trovano nella cartella Download del dispositivo).\n\nBuona giornata.`;
-        const mailtoLink = `cominellis57@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // <--- CAMBIA QUI L'EMAIL
-        window.location.href = mailtoLink;
-        
-        // 2. Mostra un avviso all'utente
-        showToast('Apri l\'email e attendi il salvataggio dei file da allegare.', 'info', 6000);
+        // --- PASSO 1: Preparazione e Salvataggio File ---
+        sendReportBtn.disabled = true;
+        sendReportBtn.textContent = 'Salvataggio file...';
+        showToast('Preparazione report in corso...', 'info');
 
-        // 3. In background, genera e scarica i file
         try {
             const { wb, fileNameBase, pdfBlob } = await generateFiles();
-        
+            
+            // Salva PDF
             const pdfUrl = URL.createObjectURL(pdfBlob);
             const aPdf = document.createElement('a');
             aPdf.href = pdfUrl;
@@ -583,12 +580,35 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.removeChild(aPdf);
             URL.revokeObjectURL(pdfUrl);
 
+            // Salva Excel
             XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
+            
+            showToast('File salvati! Ora apri l\'email.', 'success', 4000);
 
-            showToast('File salvati! Ora allegali all\'email.', 'success', 6000);
+            // --- PASSO 2: Attivazione del pulsante per l'invio ---
+            sendReportBtn.disabled = false;
+            sendReportBtn.textContent = '2. Apri Email e Allega';
+            
+            // Aggiungiamo un listener temporaneo per il secondo click
+            const openEmailHandler = () => {
+                const reportDate = dailyInterventions[0].date;
+                const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
+                const body = `Buongiorno,\n\nin allegato il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel si trovano nella cartella Download del dispositivo).\n\nBuona giornata.`;
+                const mailtoLink = `cominellis57@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // <--- CAMBIA QUI L'EMAIL
+                window.location.href = mailtoLink;
+                
+                // Resetta il pulsante allo stato originale
+                sendReportBtn.textContent = 'Invia Report Ufficio';
+                sendReportBtn.removeEventListener('click', openEmailHandler); // Rimuove il listener temporaneo
+            };
+            
+            sendReportBtn.addEventListener('click', openEmailHandler, { once: true }); // { once: true } assicura che questo evento si attivi una sola volta
+
         } catch (error) {
-            console.error("Errore durante la generazione o il salvataggio dei file:", error);
-            showToast('Errore nel salvare i file. Allegali manualmente se necessario.', 'error', 6000);
+            console.error("Errore durante la generazione dei file:", error);
+            showToast('Errore nella generazione dei file.', 'error');
+            sendReportBtn.disabled = false;
+            sendReportBtn.textContent = 'Invia Report Ufficio';
         }
     });
 
