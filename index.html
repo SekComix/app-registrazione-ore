@@ -209,7 +209,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const materialsContainer = document.getElementById('materials-container');
     const addMaterialBtn = document.getElementById('add-material-btn');
-    const photoInput = document.getElementById('photo-input');
+    const photoInputCamera = document.getElementById('photo-input-camera');
+    const photoInputGallery = document.getElementById('photo-input-gallery');
     const photoPreviews = document.getElementById('photo-previews');
     const addBtn = document.getElementById('add-intervention-btn');
     const interventionsList = document.getElementById('interventions-list');
@@ -291,23 +292,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (materials.length === 0) { addMaterialRow(); }
         else { materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc)); }
     };
-    photoInput.addEventListener('change', (event) => {
-        if (event.target.files.length === 0) return;
+        const handlePhotoFiles = (files) => {
+        if (!files || files.length === 0) return;
         showToast('Caricamento foto...', 'info');
         let processedImages = 0;
-        for (const file of event.target.files) {
+        for (const file of files) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const photoId = Date.now() + '-' + file.name;
                 currentPhotos.push({ id: photoId, file: file, dataUrl: e.target.result });
                 processedImages++;
-                if (processedImages === event.target.files.length) {
+                if (processedImages === files.length) {
                     renderPhotoPreviews();
                 }
             };
             reader.readAsDataURL(file);
         }
-        photoInput.value = '';
+    };
+
+    photoInputCamera.addEventListener('change', (event) => {
+        handlePhotoFiles(event.target.files);
+        event.target.value = ''; // Resetta per permettere nuovi scatti
+    });
+
+    photoInputGallery.addEventListener('change', (event) => {
+        handlePhotoFiles(event.target.files);
+        event.target.value = ''; // Resetta per permettere nuove selezioni
     });
     const renderPhotoPreviews = () => {
         photoPreviews.innerHTML = '';
