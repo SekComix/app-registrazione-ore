@@ -364,12 +364,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <div class="full-details">
-                        <p><b>Orari:</b> ${timeString || 'N/D'}</p>
-                        <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
-                        <p><b>Materiali Utilizzati:</b><br>${(interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') : 'Nessuno'}</p>
-                        <p><b>Note:</b><br>${interv.notes || 'N/D'}</p>
-                        <p><b>Foto:</b><br>${(interv.photos && interv.photos.length > 0) ? `${interv.photos.length} foto allegate` : 'Nessuna'}</p>
-                    </div>
+    <p><b>Data Intervento:</b> ${formattedDate}</p>
+    <p><b>Orari:</b> ${timeString || 'N/D'}</p>
+    <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
+    <p><b>Materiali Utilizzati:</b><br>${(interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') : 'Nessuno'}</p>
+    <p><b>Note:</b><br>${interv.notes || 'N/D'}</p>
+    <p><b>Foto:</b><br>${(interv.photos && interv.photos.length > 0) ? `${interv.photos.length} foto allegate` : 'Nessuna'}</p>
+</div>
                 `;
                 interventionsList.appendChild(item);
             });
