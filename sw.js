@@ -1,4 +1,4 @@
-const CACHE_NAME = 'report-interventi-cache-v46';
+const CACHE_NAME = 'report-interventi-cache-v47';
 const urlsToCache = [
   '/',
   '/index.html',
