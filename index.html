@@ -97,8 +97,9 @@
         .photo-preview { position: relative; }
         .photo-preview img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; }
         .remove-photo-btn { position: absolute; top: -5px; right: -5px; background: var(--danger-color); color: white; border-radius: 50%; width: 22px; height: 22px; border: none; font-weight: bold; cursor: pointer; line-height: 22px; text-align: center; }
-        #add-photo-label { display: inline-block; padding: 10px 15px; background-color: var(--secondary-color); color: white; border-radius: 8px; cursor: pointer; }
-        #photo-input { display: none; }
+        .photo-buttons-container { display: flex; gap: 10px; }
+        .photo-btn-label { flex: 1; text-align: center; display: inline-block; padding: 10px 15px; background-color: var(--secondary-color); color: white; border-radius: 8px; cursor: pointer; }
+        #photo-input-camera, #photo-input-gallery { display: none; }
 
         #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; text-align: center;}
         #toast.show { transform: translate(-50%, 0); }
@@ -155,11 +156,15 @@
             <div id="materials-container"></div>
             <button id="add-material-btn" class="btn-secondary">+</button>
         </div>
-        <div class="form-group">
+                <div class="form-group">
             <h4 class="section-title">Foto Lavori (Opzionale)</h4>
-            <!-- MODIFICA QUI: Aggiunto l'attributo 'capture' -->
-            <input type="file" id="photo-input" accept="image/*" capture="environment" multiple>
-            <label for="photo-input" id="add-photo-label">+ Aggiungi Foto</label>
+            <div class="photo-buttons-container">
+                <input type="file" id="photo-input-camera" accept="image/*" capture="environment">
+                <label for="photo-input-camera" class="photo-btn-label">📷 Scatta Foto</label>
+                
+                <input type="file" id="photo-input-gallery" accept="image/*" multiple>
+                <label for="photo-input-gallery" class="photo-btn-label">🖼️ Scegli da Galleria</label>
+            </div>
             <div id="photo-previews"></div>
         </div>
         <div class="form-group"><label for="notes" class="section-title">Note</label><textarea id="notes" rows="2"></textarea></div>
