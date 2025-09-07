@@ -22,7 +22,12 @@
             --light-gray: #f8f9fa;
             --border-color: #dee2e6;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--light-gray); margin: 0; padding: 15px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--light-gray);
+            margin: 0;
+            padding: 15px;
+        }
         .container { max-width: 800px; margin: 0 auto; }
         .logo-container { text-align: center; margin-bottom: 20px; }
         .logo-container img { width: 80px; height: auto; border-radius: 15px; }
@@ -31,11 +36,16 @@
         h2, h4, .section-title { color: var(--primary-color); }
         h4, .section-title { border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 20px;}
         .section-title { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; }
+        
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
         input, textarea, select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; background-color: #fff; }
         textarea { border: 2px solid #ced4da; }
-        input.error, textarea.error, select.error { border: 2px solid var(--danger-color); background-color: #fff0f0; }
+        
+        input.error, textarea.error, select.error {
+            border: 2px solid var(--danger-color);
+            background-color: #fff0f0;
+        }
         .time-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: center; }
         .time-input-wrapper { position: relative; display: flex; align-items: center; }
         .clear-time-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background-color: #e9ecef; color: #495057; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; font-weight: bold; cursor: pointer; display: none; line-height: 24px; text-align: center; }
@@ -49,15 +59,23 @@
         .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-secondary { background-color: var(--secondary-color); color: white; }
         .btn-info { background-color: var(--info-color); color: white; }
+
         .action-buttons-container { display: flex; gap: 10px; }
+
         #materials-container .material-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-        .material-qty { flex: 1.5; } .material-unit { flex: 2; } .material-desc { flex: 4; }
+        .material-qty { flex: 1.5; }
+        .material-unit { flex: 2; }
+        .material-desc { flex: 4; }
         .remove-material-btn { flex-shrink: 0; width: 40px; height: 40px; padding: 0; font-size: 20px; }
         #add-material-btn { width: auto; padding: 10px 15px; font-size: 14px; margin-top: 10px; }
+        
         .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
         #summary-total { font-size: 1.2em; font-weight: bold; color: var(--success-color); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        #interventions-list .intervention-item { padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; animation: fadeIn 0.5s ease-out; cursor: pointer; }
+        
+        #interventions-list .intervention-item {
+            padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; animation: fadeIn 0.5s ease-out; cursor: pointer;
+        }
         .intervention-item .summary-view { display: flex; justify-content: space-between; align-items: center; }
         .intervention-item .info { flex-grow: 1; }
         .intervention-item .info span { display: block; margin-bottom: 5px; word-break: break-word; }
@@ -66,20 +84,32 @@
         .intervention-item .info .details b { color: #495057; }
         .intervention-item .expand-icon { transition: transform 0.3s; font-size: 1.5em; color: var(--secondary-color); }
         .intervention-item.expanded .expand-icon { transform: rotate(180deg); }
+        
         .intervention-item .full-details { display: none; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px; }
         .intervention-item .full-details p { margin: 0 0 10px 0; white-space: pre-wrap; word-break: break-word; }
         .intervention-item.expanded .full-details { display: block; }
         .intervention-item.expanded .details { display: none; }
+        
         .intervention-item .actions { display: flex; flex-direction: column; align-items: flex-end; padding-left: 10px; }
         .intervention-item .actions button { width: auto; padding: 8px 12px; font-size: 14px; margin-bottom: 5px; }
+
         #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; text-align: center;}
         #toast.show { transform: translate(-50%, 0); }
         #toast.success { background-color: var(--success-color); }
         #toast.error { background-color: var(--danger-color); }
         #toast.info { background-color: var(--info-color); }
-        #install-button { display: none; position: fixed; bottom: 20px; right: 20px; background-color: var(--primary-color); color: white; border-radius: 50px; padding: 15px 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); font-weight: bold; z-index: 999; width: auto; border: 2px solid white; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1001; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 90%; text-align: center; }
+        #install-button {
+            display: none; position: fixed; bottom: 20px; right: 20px; background-color: var(--primary-color);
+            color: white; border-radius: 50px; padding: 15px 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            font-weight: bold; z-index: 999; width: auto; border: 2px solid white;
+        }
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 1001; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: white; padding: 25px; border-radius: 12px; max-width: 90%; text-align: center;
+        }
         .modal-content h3 { margin-top: 0; }
         .modal-content p { margin-bottom: 15px; }
     </style>
@@ -189,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
         totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
     };
     Object.values(allInputs).forEach(el => {
-        const isTextField = el.type === 'text' || el.tagName === 'TEXTAREA';
+        const isTextField = el.type === 'text' || el.tagName === 'TEXTAREA' || el.type === 'date';
         if (isTextField) { el.addEventListener('input', () => el.classList.remove('error')); }
         else if (el.type === 'time') { el.addEventListener('input', () => { el.classList.remove('error'); updateTotals(); }); }
     });
@@ -205,6 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.className = `show ${type}`;
         setTimeout(() => { toast.className = ''; }, duration);
     };
+    
     const addMaterialRow = (qty = '', unit = '', desc = '') => {
         const row = document.createElement('div');
         row.className = 'material-row';
@@ -239,9 +270,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (materials.length === 0) { addMaterialRow(); }
         else { materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc)); }
     };
+    
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
         let totalMinutesSummary = 0;
+        dailyInterventions.sort((a, b) => new Date(a.date) - new Date(b.date)); // Ordina per data
         if (dailyInterventions.length === 0) {
             interventionsList.innerHTML = '<p>Nessun intervento aggiunto.</p>';
         } else {
@@ -250,12 +283,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const item = document.createElement('div');
                 item.className = 'intervention-item';
                 let timeString = (interv.startAM && interv.endAM ? `M:${interv.startAM}-${interv.endAM}` : '') + ((interv.startAM && interv.endAM && interv.startPM && interv.endPM) ? ', ' : '') + (interv.startPM && interv.endPM ? `P:${interv.startPM}-${interv.endPM}` : '');
+                const formattedDate = new Date(interv.date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
                 item.innerHTML = `
                     <div class="summary-view">
                         <div class="info">
                             <span class="client">${interv.client}</span>
+                            <span class="details"><b>Data:</b> ${formattedDate}</span>
                             <span class="details"><b>Ore:</b> ${interv.totalHours}</span>
-                            <span class="details"><b>Lavoro:</b> ${(interv.workDone || '').substring(0,25)}...</span>
                         </div>
                         <div style="display: flex; align-items: center;">
                            <span class="expand-icon">&#9660;</span>
@@ -278,44 +312,49 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
         saveToLocalStorage();
     };
+    
     const resetForm = () => {
         Object.values(allInputs).forEach(input => { if (input.id !== 'date' && input.id !== 'employee-name') input.value = ''; });
+        allInputs.date.value = new Date().toISOString().slice(0, 10);
         interventionIdInput.value = '';
         setMaterialsData();
         formTitle.textContent = 'Nuovo Intervento';
         addBtn.textContent = 'Aggiungi Rapporto';
         updateTotals();
     };
+    
     addBtn.addEventListener('click', () => {
         Object.values(allInputs).forEach(field => field.classList.remove('error'));
         const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone];
         let textIsValid = true;
         requiredTextFields.forEach(field => { if (!field.value.trim()) { field.classList.add('error'); textIsValid = false; } });
         if (!textIsValid) return showToast('Compila i campi evidenziati!', 'error');
-        const { startAM, endAM, startPM, endPM } = allInputs;
+        const { startAM, endAM, startPM, endPM, date } = allInputs;
         if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) { startAM.classList.add('error'); endAM.classList.add('error'); return showToast("Orario mattino incompleto.", 'error'); }
         if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) { startPM.classList.add('error'); endPM.classList.add('error'); return showToast("Orario pomeriggio incompleto.", 'error'); }
         
         const newIntervals = [];
         if (startAM.value && endAM.value) newIntervals.push({start: startAM.value, end: endAM.value});
         if (startPM.value && endPM.value) newIntervals.push({start: startPM.value, end: endPM.value});
-        if (newIntervals.length > 0 && newIntervals[0].start > newIntervals[0].end) {
-             // Gestione a cavallo della mezzanotte, già inclusa in calculateMinutes
-        } else if (newIntervals.length > 1 && newIntervals[1].start < newIntervals[0].end) {
+        
+        if (newIntervals.length > 1 && newIntervals[1].start < newIntervals[0].end) {
             allInputs.endAM.classList.add('error'); allInputs.startPM.classList.add('error');
             return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error');
         }
 
-        let existingIntervals = dailyInterventions.filter(i => i.id.toString() !== interventionIdInput.value).flatMap(i => {
-            const intervals = [];
-            if (i.startAM && i.endAM) intervals.push({start: i.startAM, end: i.endAM});
-            if (i.startPM && i.endPM) intervals.push({start: i.startPM, end: i.endPM});
-            return intervals;
-        });
+        let existingIntervals = dailyInterventions
+            .filter(i => i.id.toString() !== interventionIdInput.value && i.date === date.value) // Filtra per la STESSA DATA
+            .flatMap(i => {
+                const intervals = [];
+                if (i.startAM && i.endAM) intervals.push({start: i.startAM, end: i.endAM, client: i.client});
+                if (i.startPM && i.endPM) intervals.push({start: i.startPM, end: i.endPM, client: i.client});
+                return intervals;
+            });
+
         for (const newInt of newIntervals) {
             for (const oldInt of existingIntervals) {
                 if (newInt.start < oldInt.end && newInt.end > oldInt.start) {
-                    return showToast(`Orario ${newInt.start}-${newInt.end} si sovrappone con un intervento esistente.`, 'error', 5000);
+                    return showToast(`Orario ${newInt.start}-${newInt.end} si sovrappone con l'intervento per ${oldInt.client}.`, 'error', 6000);
                 }
             }
         }
@@ -337,6 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderInterventions();
         resetForm();
     });
+    
     interventionsList.addEventListener('click', (e) => {
         const target = e.target;
         const action = target.dataset.action;
@@ -366,6 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item) item.classList.toggle('expanded');
         }
     });
+
     const saveToLocalStorage = () => { localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions)); localStorage.setItem('employeeName', allInputs.employeeName.value); };
     const loadFromLocalStorage = () => {
         const savedName = localStorage.getItem('employeeName');
@@ -373,26 +414,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = localStorage.getItem('dailyInterventions');
         if (data) dailyInterventions = JSON.parse(data);
     };
+    
     const generateFiles = () => {
         const employeeName = allInputs.employeeName.value.trim();
-        const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : new Date().toISOString().slice(0, 10);
+        const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
         const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}`;
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ unit: 'pt', format: 'a4' });
         let yPos = 40;
         const pageHeight = doc.internal.pageSize.height;
         const margin = 40;
-        const addHeader = () => {
+        const addHeader = (date) => {
             doc.setFontSize(22); doc.setFont(undefined, 'bold');
             doc.text(`Rapporto di Intervento Giornaliero`, doc.internal.pageSize.width / 2, yPos, { align: 'center' }); yPos += 30;
             doc.setFontSize(12); doc.setFont(undefined, 'normal');
-            doc.text(`Data: ${reportDate}`, margin, yPos);
+            doc.text(`Data: ${date}`, margin, yPos);
             doc.text(`Operatore: ${employeeName}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 25;
             doc.setLineWidth(1.5); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); yPos += 20;
         };
-        addHeader();
+        addHeader(reportDate);
         dailyInterventions.forEach((interv, index) => {
-            const checkPageBreak = (space) => { if (yPos + space > pageHeight - margin) { doc.addPage(); yPos = margin; addHeader(); } };
+            const checkPageBreak = (space) => { if (yPos + space > pageHeight - margin) { doc.addPage(); yPos = margin; addHeader(interv.date); } };
             checkPageBreak(120);
             doc.setFontSize(14); doc.setFont(undefined, 'bold');
             doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos); yPos += 20;
@@ -427,6 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.utils.book_append_sheet(wb, ws, "Interventi");
         return { pdfBlob, wb, fileNameBase };
     };
+    
     savePdfBtn.addEventListener('click', () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da salvare.', 'error');
         if (!allInputs.employeeName.value.trim()) { allInputs.employeeName.classList.add('error'); return showToast('Inserisci il tuo nome per salvare il PDF.', 'error'); }
@@ -438,12 +481,15 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(pdfUrl);
         showToast('PDF salvato nei Download!');
     });
+    
     sendReportBtn.addEventListener('click', () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
         if (!employeeName) { allInputs.employeeName.classList.add('error'); return showToast('Inserisci il tuo nome per inviare.', 'error'); }
+        
         showToast('Salvataggio file in corso...', 'success', 2000);
         const { wb, fileNameBase, pdfBlob } = generateFiles();
+        
         const pdfUrl = URL.createObjectURL(pdfBlob);
         const aPdf = document.createElement('a');
         aPdf.href = pdfUrl; aPdf.download = `${fileNameBase}.pdf`;
@@ -451,6 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(pdfUrl);
         XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
         showToast('PDF ed Excel salvati. Ora prepara l\'email.', 'info', 5000);
+
         setTimeout(() => {
             const reportDate = dailyInterventions[0].date;
             const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
@@ -459,6 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = mailtoLink;
         }, 1500);
     });
+
     let deferredPrompt;
     const installButton = document.getElementById('install-button');
     const installModal = document.getElementById('install-instructions-modal');
