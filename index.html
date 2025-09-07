@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Report Interventi</title>
-    
+   
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#007bff">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icon.svg">
-    
+   
     <style>
         :root {
             --primary-color: #007bff;
@@ -36,12 +36,12 @@
         h2, h4, .section-title { color: var(--primary-color); }
         h4, .section-title { border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 20px;}
         .section-title { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; }
-        
+       
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
         input, textarea, select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; background-color: #fff; }
         textarea { border: 2px solid #ced4da; }
-        
+       
         input.error, textarea.error, select.error {
             border: 2px solid var(--danger-color);
             background-color: #fff0f0;
@@ -68,11 +68,11 @@
         .material-desc { flex: 4; }
         .remove-material-btn { flex-shrink: 0; width: 40px; height: 40px; padding: 0; font-size: 20px; }
         #add-material-btn { width: auto; padding: 10px 15px; font-size: 14px; margin-top: 10px; }
-        
+       
         .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
         #summary-total { font-size: 1.2em; font-weight: bold; color: var(--success-color); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        
+       
         #interventions-list .intervention-item {
             padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; animation: fadeIn 0.5s ease-out; cursor: pointer;
         }
@@ -84,12 +84,12 @@
         .intervention-item .info .details b { color: #495057; }
         .intervention-item .expand-icon { transition: transform 0.3s; font-size: 1.5em; color: var(--secondary-color); }
         .intervention-item.expanded .expand-icon { transform: rotate(180deg); }
-        
+       
         .intervention-item .full-details { display: none; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px; }
         .intervention-item .full-details p { margin: 0 0 10px 0; white-space: pre-wrap; word-break: break-word; }
         .intervention-item.expanded .full-details { display: block; }
         .intervention-item.expanded .details { display: none; }
-        
+       
         .intervention-item .actions { display: flex; flex-direction: column; align-items: flex-end; padding-left: 10px; }
         .intervention-item .actions button { width: auto; padding: 8px 12px; font-size: 14px; margin-bottom: 5px; }
 
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.className = `show ${type}`;
         setTimeout(() => { toast.className = ''; }, duration);
     };
-    
+   
     const addMaterialRow = (qty = '', unit = '', desc = '') => {
         const row = document.createElement('div');
         row.className = 'material-row';
@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (materials.length === 0) { addMaterialRow(); }
         else { materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc)); }
     };
-    
+   
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
         let totalMinutesSummary = 0;
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
         saveToLocalStorage();
     };
-    
+   
     const resetForm = () => {
         Object.values(allInputs).forEach(input => { if (input.id !== 'date' && input.id !== 'employee-name') input.value = ''; });
         allInputs.date.value = new Date().toISOString().slice(0, 10);
@@ -322,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addBtn.textContent = 'Aggiungi Rapporto';
         updateTotals();
     };
-    
+   
     addBtn.addEventListener('click', () => {
         Object.values(allInputs).forEach(field => field.classList.remove('error'));
         const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone];
@@ -332,11 +332,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const { startAM, endAM, startPM, endPM, date } = allInputs;
         if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) { startAM.classList.add('error'); endAM.classList.add('error'); return showToast("Orario mattino incompleto.", 'error'); }
         if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) { startPM.classList.add('error'); endPM.classList.add('error'); return showToast("Orario pomeriggio incompleto.", 'error'); }
-        
+       
         const newIntervals = [];
         if (startAM.value && endAM.value) newIntervals.push({start: startAM.value, end: endAM.value});
         if (startPM.value && endPM.value) newIntervals.push({start: startPM.value, end: endPM.value});
-        
+       
         if (newIntervals.length > 1 && newIntervals[1].start < newIntervals[0].end) {
             allInputs.endAM.classList.add('error'); allInputs.startPM.classList.add('error');
             return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error');
@@ -358,10 +358,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-        
+       
         const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
         if (totalMinutes <= 0) return showToast('Inserire almeno un intervallo di ore valido.', 'error');
-        
+       
         const intervention = {
             id: interventionIdInput.value || Date.now(),
             date: allInputs.date.value, client: allInputs.client.value,
@@ -376,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderInterventions();
         resetForm();
     });
-    
+   
     interventionsList.addEventListener('click', (e) => {
         const target = e.target;
         const action = target.dataset.action;
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = localStorage.getItem('dailyInterventions');
         if (data) dailyInterventions = JSON.parse(data);
     };
-    
+   
     const generateFiles = () => {
         const employeeName = allInputs.employeeName.value.trim();
         const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
@@ -469,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.utils.book_append_sheet(wb, ws, "Interventi");
         return { pdfBlob, wb, fileNameBase };
     };
-    
+   
     savePdfBtn.addEventListener('click', () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da salvare.', 'error');
         if (!allInputs.employeeName.value.trim()) { allInputs.employeeName.classList.add('error'); return showToast('Inserisci il tuo nome per salvare il PDF.', 'error'); }
@@ -481,15 +481,15 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(pdfUrl);
         showToast('PDF salvato nei Download!');
     });
-    
+   
     sendReportBtn.addEventListener('click', () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
         if (!employeeName) { allInputs.employeeName.classList.add('error'); return showToast('Inserisci il tuo nome per inviare.', 'error'); }
-        
+       
         showToast('Salvataggio file in corso...', 'success', 2000);
         const { wb, fileNameBase, pdfBlob } = generateFiles();
-        
+       
         const pdfUrl = URL.createObjectURL(pdfBlob);
         const aPdf = document.createElement('a');
         aPdf.href = pdfUrl; aPdf.download = `${fileNameBase}.pdf`;
@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const reportDate = dailyInterventions[0].date;
             const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
             const body = `Buongiorno,\n\nin allegato il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel si trovano nella cartella Download del dispositivo).\n\nBuona giornata.`;
-            const mailtoLink = `cominellis57@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // <--- CAMBIA QUI L'EMAIL
+            const mailtoLink = `mailto:tua-email@esempio.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // <--- CAMBIA QUI L'EMAIL
             window.location.href = mailtoLink;
         }, 1500);
     });
