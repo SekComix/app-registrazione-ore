@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let dailyInterventions = [];
     let currentPhotos = [];
     const unitsOfMeasure = ["", "PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
-    
+
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         let s = new Date(`1970-01-01T${start}:00`), e = new Date(`1970-01-01T${end}:00`);
@@ -219,7 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.className = `show ${type}`;
         setTimeout(() => { toast.className = ''; }, duration);
     };
-    
     const addMaterialRow = (qty = '', unit = '', desc = '') => {
         const row = document.createElement('div');
         row.className = 'material-row';
@@ -289,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
         let totalMinutesSummary = 0;
-        dailyInterventions.sort((a, b) => new Date(a.date) - new Date(b.date));
+        dailyInterventions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         if (dailyInterventions.length === 0) {
             interventionsList.innerHTML = '<p>Nessun intervento aggiunto.</p>';
         } else {
@@ -317,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="full-details">
                         <p><b>Orari:</b> ${timeString || 'N/D'}</p>
                         <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
-                        <p><b>Materiali Utilizzati:</b><br>${interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') || 'Nessuno'}</p>
+                        <p><b>Materiali Utilizzati:</b><br>${(interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') : 'Nessuno'}</p>
                         <p><b>Note:</b><br>${interv.notes || 'N/D'}</p>
                         <p><b>Foto:</b><br>${(interv.photos && interv.photos.length > 0) ? `${interv.photos.length} foto allegate` : 'Nessuna'}</p>
                     </div>
@@ -353,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newIntervals = [];
         if (startAM.value && endAM.value) newIntervals.push({start: startAM.value, end: endAM.value});
         if (startPM.value && endPM.value) newIntervals.push({start: startPM.value, end: endPM.value});
-        if (newIntervals.length > 1 && newIntervals[1].start < newIntervals[0].end) {
+        if (newIntervals.length > 1 && newIntervals[0].end > newIntervals[1].start) {
             allInputs.endAM.classList.add('error'); allInputs.startPM.classList.add('error');
             return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error');
         }
@@ -440,10 +439,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const pageHeight = doc.internal.pageSize.height;
         const margin = 40;
         const addHeader = (date) => {
+            const formattedDateForHeader = new Date(date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
             doc.setFontSize(22); doc.setFont(undefined, 'bold');
             doc.text(`Rapporto di Intervento Giornaliero`, doc.internal.pageSize.width / 2, yPos, { align: 'center' }); yPos += 30;
             doc.setFontSize(12); doc.setFont(undefined, 'normal');
-            doc.text(`Data: ${new Date(date + 'T00:00:00').toLocaleDateString('it-IT')}`, margin, yPos);
+            doc.text(`Data: ${formattedDateForHeader}`, margin, yPos);
             doc.text(`Operatore: ${employeeName}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 25;
             doc.setLineWidth(1.5); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); yPos += 20;
         };
@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
             addSection('Lavoro Svolto:', interv.workDone);
-            const materialsText = interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('\n');
+            const materialsText = (interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('\n') : '';
             addSection('Materiali Utilizzati:', materialsText);
             addSection('Note Aggiuntive:', interv.notes);
             if (interv.photos && interv.photos.length > 0) {
@@ -477,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (const photo of interv.photos) {
                     if (xPos + photoSize > doc.internal.pageSize.width - margin) { xPos = margin; yPos += photoSize + 10; }
                     checkPageBreak(photoSize + 20);
-                    try { doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, photoSize, photoSize); } catch (e) { doc.text('[Immagine non supportata]', xPos, yPos + 20); }
+                    try { doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, photoSize, photoSize); } catch (e) { console.error("Errore immagine PDF:", e); doc.text('[Immagine non supportata]', xPos, yPos + 20); }
                     xPos += photoSize + 10;
                 }
                 yPos += photoSize + 20;
@@ -511,11 +511,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!employeeName) { allInputs.employeeName.classList.add('error'); return showToast('Inserisci il tuo nome per inviare.', 'error'); }
         showToast('Salvataggio file in corso...', 'info');
         const { wb, fileNameBase, pdfBlob } = await generateFiles();
-        savePdfBtn.click();
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        const aPdf = document.createElement('a');
+        aPdf.href = pdfUrl; aPdf.download = `${fileNameBase}.pdf`;
+        document.body.appendChild(aPdf); aPdf.click(); document.body.removeChild(aPdf);
+        URL.revokeObjectURL(pdfUrl);
         XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
         showToast('PDF ed Excel salvati. Ora prepara l\'email.', 'info', 5000);
         setTimeout(() => {
-            const reportDate = dailyInterventions[0].date;
+            const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
             const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
             const body = `Buongiorno,\n\nin allegato il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel si trovano nella cartella Download del dispositivo).\n\nBuona giornata.`;
             const mailtoLink = `mailto:tua-email@esempio.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // <--- CAMBIA QUI L'EMAIL
