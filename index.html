@@ -157,7 +157,7 @@
     </div>
 </div>
 
-<!-- NUOVO MODALE PER IL SALVATAGGIO DEI FILE -->
+<!-- MODALE PER IL SALVATAGGIO DEI FILE (CON LA TERZA OPZIONE) -->
 <div class="modal-overlay" id="save-modal">
     <div class="modal-content">
         <h3>Salva Report</h3>
@@ -165,6 +165,7 @@
         <div class="action-buttons-container" style="flex-direction: column; gap: 10px;">
             <button id="modal-save-pdf" class="btn-info">Scarica PDF</button>
             <button id="modal-save-excel" class="btn-success">Scarica Excel</button>
+            <button id="modal-save-both" class="btn-primary">Scarica Entrambi</button>
         </div>
         <button id="modal-close-save" class="btn-secondary" style="margin-top: 20px;">Annulla</button>
     </div>
@@ -191,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const photoPreviews = document.getElementById('photo-previews');
     const addBtn = document.getElementById('add-intervention-btn');
     const interventionsList = document.getElementById('interventions-list');
-    const saveReportBtn = document.getElementById('save-report-btn'); // Modificato
+    const saveReportBtn = document.getElementById('save-report-btn');
     const sendReportBtn = document.getElementById('send-report-btn');
     const formTitle = document.getElementById('form-title');
     const interventionIdInput = document.getElementById('intervention-id');
@@ -204,16 +205,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPhotos = [];
     const unitsOfMeasure = ["", "PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
     
-    // Variabili per conservare i file generati per il modale
     let generatedPdfBlob = null;
     let generatedWb = null;
     let generatedFileNameBase = '';
 
-    // Elementi del nuovo modale di salvataggio
     const saveModal = document.getElementById('save-modal');
     const modalSavePdfBtn = document.getElementById('modal-save-pdf');
     const modalSaveExcelBtn = document.getElementById('modal-save-excel');
     const modalCloseSaveBtn = document.getElementById('modal-close-save');
+    const modalSaveBothBtn = document.getElementById('modal-save-both');
 
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
@@ -524,7 +524,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return { pdfBlob, wb, fileNameBase };
     };
     
-    // NUOVA LOGICA PER IL PULSANTE "SALVA REPORT"
     saveReportBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da salvare.', 'error');
         if (!allInputs.employeeName.value.trim()) {
@@ -542,7 +541,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveModal.style.display = 'flex';
     });
 
-    // NUOVA LOGICA PER IL PULSANTE "INVIA REPORT UFFICIO"
     sendReportBtn.addEventListener('click', () => {
         if (dailyInterventions.length === 0) return showToast('Aggiungi almeno un intervento.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
@@ -562,7 +560,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = mailtoLink;
     });
     
-    // LOGICA PER I PULSANTI DEL NUOVO MODALE DI SALVATAGGIO
     modalSavePdfBtn.addEventListener('click', () => {
         if (!generatedPdfBlob) return showToast('Errore: PDF non generato.', 'error');
         const pdfUrl = URL.createObjectURL(generatedPdfBlob);
@@ -580,6 +577,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!generatedWb) return showToast('Errore: Excel non generato.', 'error');
         XLSX.writeFile(generatedWb, `${generatedFileNameBase}.xlsx`);
         showToast('Excel salvato nei Download!', 'success');
+    });
+
+    modalSaveBothBtn.addEventListener('click', () => {
+        if (!generatedPdfBlob || !generatedWb) return showToast('Errore: File non generati.', 'error');
+
+        showToast('Download di entrambi i file...', 'info');
+
+        const pdfUrl = URL.createObjectURL(generatedPdfBlob);
+        const a = document.createElement('a');
+        a.href = pdfUrl;
+        a.download = `${generatedFileNameBase}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
+
+        setTimeout(() => {
+            XLSX.writeFile(generatedWb, `${generatedFileNameBase}.xlsx`);
+            showToast('PDF ed Excel salvati!', 'success');
+        }, 700);
     });
 
     modalCloseSaveBtn.addEventListener('click', () => {
