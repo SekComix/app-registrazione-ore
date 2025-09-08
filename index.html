@@ -157,7 +157,7 @@
     </div>
 </div>
 
-<!-- MODALE PER IL SALVATAGGIO DEI FILE (CON LA TERZA OPZIONE) -->
+<!-- MODALE PER IL SALVATAGGIO DEI FILE (SENZA "ENTRAMBI") -->
 <div class="modal-overlay" id="save-modal">
     <div class="modal-content">
         <h3>Salva Report</h3>
@@ -165,7 +165,6 @@
         <div class="action-buttons-container" style="flex-direction: column; gap: 10px;">
             <button id="modal-save-pdf" class="btn-info">Scarica PDF</button>
             <button id="modal-save-excel" class="btn-success">Scarica Excel</button>
-            <button id="modal-save-both" class="btn-primary">Scarica Entrambi</button>
         </div>
         <button id="modal-close-save" class="btn-secondary" style="margin-top: 20px;">Annulla</button>
     </div>
@@ -213,7 +212,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalSavePdfBtn = document.getElementById('modal-save-pdf');
     const modalSaveExcelBtn = document.getElementById('modal-save-excel');
     const modalCloseSaveBtn = document.getElementById('modal-close-save');
-    const modalSaveBothBtn = document.getElementById('modal-save-both');
 
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
@@ -577,26 +575,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!generatedWb) return showToast('Errore: Excel non generato.', 'error');
         XLSX.writeFile(generatedWb, `${generatedFileNameBase}.xlsx`);
         showToast('Excel salvato nei Download!', 'success');
-    });
-
-    modalSaveBothBtn.addEventListener('click', () => {
-        if (!generatedPdfBlob || !generatedWb) return showToast('Errore: File non generati.', 'error');
-
-        showToast('Download di entrambi i file...', 'info');
-
-        const pdfUrl = URL.createObjectURL(generatedPdfBlob);
-        const a = document.createElement('a');
-        a.href = pdfUrl;
-        a.download = `${generatedFileNameBase}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
-
-        setTimeout(() => {
-            XLSX.writeFile(generatedWb, `${generatedFileNameBase}.xlsx`);
-            showToast('PDF ed Excel salvati!', 'success');
-        }, 700);
     });
 
     modalCloseSaveBtn.addEventListener('click', () => {
