@@ -515,52 +515,48 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('PDF salvato nei Download!');
     });
     
-    // LOGICA FINALE, STABILE E FUNZIONANTE (CON LA MODIFICA CHIRURGICA GIÀ INTEGRATA)
-   // +++ INIZIO NUOVO BLOCCO DA INCOLLARE +++
-
-if (dailyInterventions.length === 0) return showToast('Aggiungi almeno un intervento prima di inviare.', 'error');
-const employeeName = allInputs.employeeName.value.trim();
-if (!employeeName) {
-    allInputs.employeeName.classList.add('error');
-    return showToast('Inserisci il tuo nome per inviare.', 'error');
-}
-
-showToast('Preparazione e download in corso...', 'info', 4000);
-const { wb, fileNameBase, pdfBlob } = await generateFiles();
-
-// Creiamo una sequenza nidificata per essere sicuri che i comandi vengano eseguiti in ordine.
-
-// Azione 1: Download PDF.
-setTimeout(() => {
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    const aPdf = document.createElement('a');
-    aPdf.href = pdfUrl;
-    aPdf.download = `${fileNameBase}.pdf`;
-    document.body.appendChild(aPdf);
-    aPdf.click();
-    document.body.removeChild(aPdf);
-    setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
-
-    // Azione 2: Download Excel (parte solo dopo che il comando PDF è stato dato).
-    setTimeout(() => {
-        XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
-
-        // Azione 3: Apri Mail (parte solo dopo che il comando Excel è stato dato).
+    sendReportBtn.addEventListener('click', async () => {
+        if (dailyInterventions.length === 0) return showToast('Aggiungi almeno un intervento prima di inviare.', 'error');
+        const employeeName = allInputs.employeeName.value.trim();
+        if (!employeeName) {
+            allInputs.employeeName.classList.add('error');
+            return showToast('Inserisci il tuo nome per inviare.', 'error');
+        }
+        
+        showToast('Preparazione e download in corso...', 'info', 4000);
+        const { wb, fileNameBase, pdfBlob } = await generateFiles();
+        
+        // Sequenza nidificata per garantire l'ordine di esecuzione
         setTimeout(() => {
-            showToast('File salvati! Apro la posta...', 'success', 4000);
-            const reportDate = new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT');
-            const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
-            const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel sono stati salvati nella cartella Download).\n\nBuona giornata.`;
-            
-            const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
-            
-            const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            window.location.href = mailtoLink;
-        }, 800); // Ritardo tra Excel e Mail
-    }, 800); // Ritardo tra PDF e Excel
-}, 100); // Inizia la sequenza dopo 100ms
+            // Azione 1: Download PDF
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const aPdf = document.createElement('a');
+            aPdf.href = pdfUrl;
+            aPdf.download = `${fileNameBase}.pdf`;
+            document.body.appendChild(aPdf);
+            aPdf.click();
+            document.body.removeChild(aPdf);
+            setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
 
-// +++ FINE NUOVO BLOCCO DA INCOLLARE +++
+            setTimeout(() => {
+                // Azione 2: Download Excel
+                XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
+
+                setTimeout(() => {
+                    // Azione 3: Apri Mail
+                    showToast('File salvati! Apro la posta...', 'success', 4000);
+                    const reportDate = new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT');
+                    const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
+                    const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel sono stati salvati nella cartella Download).\n\nBuona giornata.`;
+                    
+                    const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
+                    
+                    const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.location.href = mailtoLink;
+                }, 800);
+            }, 800);
+        }, 100);
+    });
 
     let deferredPrompt;
     const installButton = document.getElementById('install-button');
@@ -591,6 +587,7 @@ setTimeout(() => {
     });
     if(closeModalBtn) closeModalBtn.addEventListener('click', () => { installModal.style.display = 'none'; });
 
+    // RIGHE CORRETTE E RIPRISTINATE
     allInputs.date.value = new Date().toISOString().slice(0, 10);
     loadFromLocalStorage();
     renderInterventions();
