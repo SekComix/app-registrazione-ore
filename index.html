@@ -141,7 +141,7 @@
         </div>
         <div id="interventions-list" style="margin-top: 15px;"></div>
         <div class="form-group action-buttons-container" style="margin-top: 20px;">
-            <button id="save-pdf-btn" class="btn-info">Salva PDF Personale</button>
+            <button id="save-report-btn" class="btn-info">Salva Report</button>
             <button id="send-report-btn" class="btn-success">Invia Report Ufficio</button>
         </div>
     </div>
@@ -154,6 +154,19 @@
         <p><strong>Su Android (Chrome):</strong><br>1. Tocca i tre puntini (⋮) in alto a destra.<br>2. Seleziona "Installa app".</p>
         <p><strong>Su iPhone (Safari):</strong><br>1. Tocca l'icona di condivisione ( quadrato con freccia in su ).<br>2. Scorri e seleziona "Aggiungi a schermata Home".</p>
         <button id="close-modal-btn" class="btn-primary">OK, ho capito</button>
+    </div>
+</div>
+
+<!-- NUOVO MODALE PER IL SALVATAGGIO DEI FILE -->
+<div class="modal-overlay" id="save-modal">
+    <div class="modal-content">
+        <h3>Salva Report</h3>
+        <p>Scegli quale file scaricare sul tuo dispositivo.</p>
+        <div class="action-buttons-container" style="flex-direction: column; gap: 10px;">
+            <button id="modal-save-pdf" class="btn-info">Scarica PDF</button>
+            <button id="modal-save-excel" class="btn-success">Scarica Excel</button>
+        </div>
+        <button id="modal-close-save" class="btn-secondary" style="margin-top: 20px;">Annulla</button>
     </div>
 </div>
 
@@ -178,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const photoPreviews = document.getElementById('photo-previews');
     const addBtn = document.getElementById('add-intervention-btn');
     const interventionsList = document.getElementById('interventions-list');
-    const savePdfBtn = document.getElementById('save-pdf-btn');
+    const saveReportBtn = document.getElementById('save-report-btn'); // Modificato
     const sendReportBtn = document.getElementById('send-report-btn');
     const formTitle = document.getElementById('form-title');
     const interventionIdInput = document.getElementById('intervention-id');
@@ -191,6 +204,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPhotos = [];
     const unitsOfMeasure = ["", "PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
     
+    // Variabili per conservare i file generati per il modale
+    let generatedPdfBlob = null;
+    let generatedWb = null;
+    let generatedFileNameBase = '';
+
+    // Elementi del nuovo modale di salvataggio
+    const saveModal = document.getElementById('save-modal');
+    const modalSavePdfBtn = document.getElementById('modal-save-pdf');
+    const modalSaveExcelBtn = document.getElementById('modal-save-excel');
+    const modalCloseSaveBtn = document.getElementById('modal-close-save');
+
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         let s = new Date(`1970-01-01T${start}:00`), e = new Date(`1970-01-01T${end}:00`);
@@ -500,62 +524,69 @@ document.addEventListener('DOMContentLoaded', () => {
         return { pdfBlob, wb, fileNameBase };
     };
     
-    savePdfBtn.addEventListener('click', async () => {
+    // NUOVA LOGICA PER IL PULSANTE "SALVA REPORT"
+    saveReportBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da salvare.', 'error');
-        if (!allInputs.employeeName.value.trim()) { allInputs.employeeName.classList.add('error'); return showToast('Inserisci il tuo nome per salvare il PDF.', 'error'); }
-        showToast('Creazione PDF in corso...', 'info');
-        const { pdfBlob, fileNameBase } = await generateFiles();
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        const a = document.createElement('a');
-        a.href = pdfUrl; a.download = `${fileNameBase}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(pdfUrl), 100); 
-        showToast('PDF salvato nei Download!');
+        if (!allInputs.employeeName.value.trim()) {
+            allInputs.employeeName.classList.add('error');
+            return showToast('Inserisci il tuo nome per salvare il report.', 'error');
+        }
+        showToast('Preparazione file in corso...', 'info');
+        
+        const { wb, fileNameBase, pdfBlob } = await generateFiles();
+        generatedPdfBlob = pdfBlob;
+        generatedWb = wb;
+        generatedFileNameBase = fileNameBase;
+        
+        showToast('File pronti per il download!', 'success');
+        saveModal.style.display = 'flex';
     });
-    
-    sendReportBtn.addEventListener('click', async () => {
-        if (dailyInterventions.length === 0) return showToast('Aggiungi almeno un intervento prima di inviare.', 'error');
+
+    // NUOVA LOGICA PER IL PULSANTE "INVIA REPORT UFFICIO"
+    sendReportBtn.addEventListener('click', () => {
+        if (dailyInterventions.length === 0) return showToast('Aggiungi almeno un intervento.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
         if (!employeeName) {
             allInputs.employeeName.classList.add('error');
             return showToast('Inserisci il tuo nome per inviare.', 'error');
         }
-        
-        showToast('Preparazione e download in corso...', 'info', 4000);
-        const { wb, fileNameBase, pdfBlob } = await generateFiles();
-        
-        // Sequenza nidificata per garantire l'ordine di esecuzione
-        setTimeout(() => {
-            // Azione 1: Download PDF
-            const pdfUrl = URL.createObjectURL(pdfBlob);
-            const aPdf = document.createElement('a');
-            aPdf.href = pdfUrl;
-            aPdf.download = `${fileNameBase}.pdf`;
-            document.body.appendChild(aPdf);
-            aPdf.click();
-            document.body.removeChild(aPdf);
-            setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
 
-            setTimeout(() => {
-                // Azione 2: Download Excel
-                XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
+        showToast('Apro l\'app di posta...', 'info');
+        const reportDate = new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT');
+        const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
+        const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file sono stati salvati nella cartella Download).\n\nBuona giornata.`;
+        
+        const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
+        
+        const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailtoLink;
+    });
+    
+    // LOGICA PER I PULSANTI DEL NUOVO MODALE DI SALVATAGGIO
+    modalSavePdfBtn.addEventListener('click', () => {
+        if (!generatedPdfBlob) return showToast('Errore: PDF non generato.', 'error');
+        const pdfUrl = URL.createObjectURL(generatedPdfBlob);
+        const a = document.createElement('a');
+        a.href = pdfUrl;
+        a.download = `${generatedFileNameBase}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
+        showToast('PDF salvato nei Download!', 'success');
+    });
 
-                setTimeout(() => {
-                    // Azione 3: Apri Mail
-                    showToast('File salvati! Apro la posta...', 'success', 4000);
-                    const reportDate = new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT');
-                    const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
-                    const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel sono stati salvati nella cartella Download).\n\nBuona giornata.`;
-                    
-                    const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
-                    
-                    const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                    window.location.href = mailtoLink;
-                }, 800);
-            }, 800);
-        }, 100);
+    modalSaveExcelBtn.addEventListener('click', () => {
+        if (!generatedWb) return showToast('Errore: Excel non generato.', 'error');
+        XLSX.writeFile(generatedWb, `${generatedFileNameBase}.xlsx`);
+        showToast('Excel salvato nei Download!', 'success');
+    });
+
+    modalCloseSaveBtn.addEventListener('click', () => {
+        saveModal.style.display = 'none';
+        generatedPdfBlob = null;
+        generatedWb = null;
+        generatedFileNameBase = '';
     });
 
     let deferredPrompt;
@@ -587,7 +618,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if(closeModalBtn) closeModalBtn.addEventListener('click', () => { installModal.style.display = 'none'; });
 
-    // RIGHE CORRETTE E RIPRISTINATE
     allInputs.date.value = new Date().toISOString().slice(0, 10);
     loadFromLocalStorage();
     renderInterventions();
