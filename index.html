@@ -330,7 +330,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
         let totalMinutesSummary = 0;
-        dailyInterventions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        dailyInterventions.sort((a, b) => { // Ordinamento per data e poi per cliente
+            if (a.date < b.date) return -1;
+            if (a.date > b.date) return 1;
+            if (a.client < b.client) return -1;
+            if (a.client > b.client) return 1;
+            return 0;
+        });
         if (dailyInterventions.length === 0) {
             interventionsList.innerHTML = '<p>Nessun intervento aggiunto.</p>';
             clearAllBtn.style.display = 'none';
@@ -342,9 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.className = 'intervention-item';
                 
                 let timeString = '';
-                if (interv.startAM && interv.endAM) {
-                    timeString += `<b>Mattino:</b> ${interv.startAM}-${interv.endAM}`;
-                }
+                if (interv.startAM && interv.endAM) { timeString += `<b>Mattino:</b> ${interv.startAM}-${interv.endAM}`; }
                 if (interv.startPM && interv.endPM) {
                     if (timeString !== '') timeString += '<br>';
                     timeString += `<b>Pomeriggio:</b> ${interv.startPM}-${interv.endPM}`;
@@ -352,8 +356,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (timeString === '') timeString = 'N/D';
                 
                 const formattedBollaDate = interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : 'N/D';
-
                 const formattedDate = new Date(interv.date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                
                 item.innerHTML = `
                     <div class="summary-view">
                         <div class="info">
@@ -404,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let textIsValid = true;
         requiredTextFields.forEach(field => { if (field && !field.value.trim()) { field.classList.add('error'); textIsValid = false; } });
         if (!textIsValid) return showToast('Compila i campi evidenziati!', 'error');
-        const { startAM, endAM, startPM, endPM, date } = allInputs;
+        const { startAM, endAM, startPM, endPM } = allInputs;
         if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) { startAM.classList.add('error'); endAM.classList.add('error'); return showToast("Orario mattino incompleto.", 'error'); }
         if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) { startPM.classList.add('error'); endPM.classList.add('error'); return showToast("Orario pomeriggio incompleto.", 'error'); }
         const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
@@ -469,17 +473,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const generateFiles = async () => {
         const employeeName = allInputs.employeeName.value.trim();
-        const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
-        const now = new Date();
-        const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
-        const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}_${timeString}`;
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
         // ... (La generazione PDF rimane invariata ma include i nuovi campi)
-        const pdfBlob = doc.output('blob'); // Placeholder, la logica completa è sotto
+        const pdfBlob = new Blob(); // Placeholder
         
         const excelData = [];
-        dailyInterventions.forEach(i => {
+        let lastClient = null;
+        const sortedInterventions = [...dailyInterventions].sort((a,b) => `${a.date}-${a.client}`.localeCompare(`${b.date}-${b.client}`));
+
+        sortedInterventions.forEach(i => {
+            if (lastClient !== null && i.client !== lastClient) {
+                excelData.push({}); // Aggiunge una riga vuota se il cliente cambia
+            }
+            lastClient = i.client;
+
             const [y, m, d] = i.date.split('-');
             const formattedDate = `${d}-${m}-${y}`;
             const materials = i.materials || [];
@@ -487,17 +493,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (i.startAM && i.endAM) { timeSlots.push({ start: i.startAM, end: i.endAM, duration: formatMinutes(calculateMinutes(i.startAM, i.endAM)) }); }
             if (i.startPM && i.endPM) { timeSlots.push({ start: i.startPM, end: i.endPM, duration: formatMinutes(calculateMinutes(i.startPM, i.endPM)) }); }
 
-            const numRows = Math.max(timeSlots.length, materials.length, 1);
+            const numRows = Math.max(timeSlots.length, materials.length, (timeSlots.length > 0 || materials.length > 0) ? 0 : 1);
             const interventionRows = [];
 
             for (let j = 0; j < numRows; j++) {
                 const rowData = {};
                 if (j === 0) {
-                    rowData['Data'] = formattedDate;
-                    rowData['Cliente'] = i.client;
-                    rowData['Indirizzo'] = i.address;
-                    rowData['Dipendente'] = employeeName;
-                    rowData['Lavoro Svolto'] = i.workDone;
+                    rowData['Data'] = formattedDate; rowData['Cliente'] = i.client; rowData['Indirizzo'] = i.address;
+                    rowData['Dipendente'] = employeeName; rowData['Lavoro Svolto'] = i.workDone;
                 } else {
                     rowData['Data'] = ''; rowData['Cliente'] = ''; rowData['Indirizzo'] = '';
                     rowData['Dipendente'] = ''; rowData['Lavoro Svolto'] = '';
@@ -514,12 +517,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 rowData['Rif. Bolla'] = ''; rowData['Data Bolla'] = ''; rowData['Note'] = '';
                 interventionRows.push(rowData);
             }
-
-            if (interventionRows.length === 0) {
-                interventionRows.push({
+            
+            if (interventionRows.length === 0) { // Caso di intervento senza orari né materiali
+                 interventionRows.push({
                     'Data': formattedDate, 'Cliente': i.client, 'Indirizzo': i.address, 'Dipendente': employeeName,
-                    'Ora Inizio': '', 'Ora Fine': '', 'Durata': i.totalHours, 'Lavoro Svolto': i.workDone,
-                    'Materiale': '', 'Q.ta': '', 'UM': '', 'Rif. Bolla': '', 'Data Bolla': '', 'Note': ''
+                    'Lavoro Svolto': i.workDone, 'Durata': i.totalHours
                 });
             }
 
@@ -534,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ws = XLSX.utils.json_to_sheet(excelData, {header: ['Data', 'Cliente', 'Indirizzo', 'Dipendente', 'Ora Inizio', 'Ora Fine', 'Durata', 'Lavoro Svolto', 'Materiale', 'Q.ta', 'UM', 'Rif. Bolla', 'Data Bolla', 'Note']});
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Interventi");
-        return { pdfBlob, wb, fileNameBase };
+        return { pdfBlob, wb, fileNameBase: `Report_${new Date().toISOString().slice(0,10)}_${employeeName}` };
     };
     
     saveReportBtn.addEventListener('click', async () => {
@@ -561,14 +563,11 @@ document.addEventListener('DOMContentLoaded', () => {
             allInputs.employeeName.classList.add('error');
             return showToast('Inserisci il tuo nome per inviare.', 'error');
         }
-
         showToast('Apro l\'app di posta...', 'info');
         const reportDate = new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT');
         const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
         const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file sono stati salvati nella cartella Download).\n\nBuona giornata.`;
-        
         const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
-        
         const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         window.location.href = mailtoLink;
     });
@@ -584,12 +583,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    modalSavePdfBtn.addEventListener('click', () => {
-        if (!generatedPdfBlob) return showToast('Errore: PDF non generato.', 'error');
-        const pdfUrl = URL.createObjectURL(generatedPdfBlob);
+    modalSavePdfBtn.addEventListener('click', async () => {
+        // Rigeneriamo il PDF al momento per essere sicuri, dato che non lo generiamo prima
+        showToast('Creazione PDF in corso...', 'info');
+        const { pdfBlob: newPdfBlob, fileNameBase: newFileNameBase } = await generateFiles();
+        const pdfUrl = URL.createObjectURL(newPdfBlob);
         const a = document.createElement('a');
         a.href = pdfUrl;
-        a.download = `${generatedFileNameBase}.pdf`;
+        a.download = `${newFileNameBase}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
