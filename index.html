@@ -528,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
             const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
             const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file si trovano nella cartella Download).\n\nBuona giornata.`;
-            const mailtoLink = `mailto:tua-email@esempio.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // <--- CAMBIA QUI L'EMAIL
+            const mailtoLink = `cominellis57@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // <--- CAMBIA QUI L'EMAIL
             window.location.href = mailtoLink;
         }
     });
