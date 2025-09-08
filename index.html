@@ -83,8 +83,8 @@
         #toast.success { background-color: var(--success-color); } #toast.error { background-color: var(--danger-color); } #toast.info { background-color: var(--info-color); }
         #install-button { display: none; position: fixed; bottom: 20px; right: 20px; background-color: var(--primary-color); color: white; border-radius: 50px; padding: 15px 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); font-weight: bold; z-index: 999; width: auto; border: 2px solid white; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1001; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 90%; text-align: center; }
-        .modal-content h3 { margin-top: 0; } .modal-content p { margin-bottom: 15px; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 90%; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-content h3 { margin-top: 0; } .modal-content p { margin-bottom: 20px; line-height: 1.5; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -125,9 +125,9 @@
             <h4 class="section-title">Foto Lavori (Opzionale)</h4>
             <div class="photo-buttons-container">
                 <input type="file" id="photo-input-camera" accept="image/*" capture="environment">
-                <label for="photo-input-camera" class="photo-btn-label">📷 Scatta Foto</label>
+                <label for="photo-input-camera" class="photo-btn-label"> Scatta Foto</label>
                 <input type="file" id="photo-input-gallery" accept="image/*" multiple>
-                <label for="photo-input-gallery" class="photo-btn-label">🖼️ Scegli da Galleria</label>
+                <label for="photo-input-gallery" class="photo-btn-label"> Scegli da Galleria</label>
             </div>
             <div id="photo-previews"></div>
         </div>
@@ -157,6 +157,20 @@
     </div>
 </div>
 
+<!-- NUOVO PANNELLO DI CONTROLLO PER L'INVIO -->
+<div class="modal-overlay" id="export-modal">
+    <div class="modal-content">
+        <h3>Report Pronto per l'Invio</h3>
+        <p>Esegui questi 3 passaggi per completare l'invio.</p>
+        <div class="action-buttons-container" style="flex-direction: column; margin-bottom: 15px;">
+            <button id="modal-download-pdf" class="btn-info">1. Scarica PDF</button>
+            <button id="modal-download-excel" class="btn-success" style="margin-top: 10px;">2. Scarica Excel</button>
+            <button id="modal-open-mail" class="btn-primary" style="margin-top: 10px;">3. Apri App di Posta</button>
+        </div>
+        <button id="modal-close-export" class="btn-secondary">Chiudi</button>
+    </div>
+</div>
+
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -164,7 +178,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 document.addEventListener('DOMContentLoaded', () => {
-    // ... (tutto il codice iniziale rimane identico fino a 'generateFiles') ...
     const allInputs = {
         date: document.getElementById('date'), client: document.getElementById('client'),
         startAM: document.getElementById('start-am'), endAM: document.getElementById('end-am'),
@@ -191,6 +204,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let dailyInterventions = [];
     let currentPhotos = [];
     const unitsOfMeasure = ["", "PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
+    
+    // Variabili per conservare i file generati per il modale
+    let generatedPdfBlob = null;
+    let generatedWb = null;
+    let generatedFileNameBase = '';
+
+    // Elementi del nuovo modale di esportazione
+    const exportModal = document.getElementById('export-modal');
+    const modalDownloadPdfBtn = document.getElementById('modal-download-pdf');
+    const modalDownloadExcelBtn = document.getElementById('modal-download-excel');
+    const modalOpenMailBtn = document.getElementById('modal-open-mail');
+    const modalCloseExportBtn = document.getElementById('modal-close-export');
+
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         let s = new Date(`1970-01-01T${start}:00`), e = new Date(`1970-01-01T${end}:00`);
@@ -500,7 +526,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return { pdfBlob, wb, fileNameBase };
     };
     
-    // FUNZIONE CORRETTA
     savePdfBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da salvare.', 'error');
         if (!allInputs.employeeName.value.trim()) { allInputs.employeeName.classList.add('error'); return showToast('Inserisci il tuo nome per salvare il PDF.', 'error'); }
@@ -512,53 +537,67 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        
-        // SOLUZIONE 1: Aggiunto timeout per dare tempo al browser di scaricare
         setTimeout(() => URL.revokeObjectURL(pdfUrl), 100); 
-
         showToast('PDF salvato nei Download!');
     });
     
-    // FUNZIONE CORRETTA
+    // NUOVA LOGICA PER IL PULSANTE "INVIA REPORT"
     sendReportBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
-        if (!employeeName) { allInputs.employeeName.classList.add('error'); return showToast('Inserisci il tuo nome per inviare.', 'error'); }
+        if (!employeeName) {
+            allInputs.employeeName.classList.add('error');
+            return showToast('Inserisci il tuo nome per inviare.', 'error');
+        }
         
         showToast('Preparazione file in corso...', 'info');
+        
         const { wb, fileNameBase, pdfBlob } = await generateFiles();
+        generatedPdfBlob = pdfBlob;
+        generatedWb = wb;
+        generatedFileNameBase = fileNameBase;
         
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        const aPdf = document.createElement('a');
-        aPdf.href = pdfUrl; aPdf.download = `${fileNameBase}.pdf`;
-        document.body.appendChild(aPdf);
-        aPdf.click();
-        document.body.removeChild(aPdf);
-        
-        // SOLUZIONE 1: Aggiunto timeout per dare tempo al browser di scaricare il PDF
+        showToast('File pronti per il download!', 'success');
+        exportModal.style.display = 'flex';
+    });
+
+    // NUOVI LISTENER PER I PULSANTI DEL PANNELLO
+    modalDownloadPdfBtn.addEventListener('click', () => {
+        if (!generatedPdfBlob) return showToast('Errore: PDF non generato.', 'error');
+        const pdfUrl = URL.createObjectURL(generatedPdfBlob);
+        const a = document.createElement('a');
+        a.href = pdfUrl; a.download = `${generatedFileNameBase}.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
+        showToast('PDF salvato nei Download!', 'success');
+    });
+
+    modalDownloadExcelBtn.addEventListener('click', () => {
+        if (!generatedWb) return showToast('Errore: Excel non generato.', 'error');
+        XLSX.writeFile(generatedWb, `${generatedFileNameBase}.xlsx`);
+        showToast('Excel salvato nei Download!', 'success');
+    });
+
+    modalOpenMailBtn.addEventListener('click', () => {
+        const employeeName = allInputs.employeeName.value.trim();
+        if (!employeeName) return showToast('Inserisci prima il tuo nome.', 'error');
+        const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
+        const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
+        const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(Ho salvato i file PDF ed Excel nella cartella Download).\n\nBuona giornata.`;
         
-        XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
+        // <--- CAMBIA QUI L'EMAIL
+        const mailtoLink = `cominellis57@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        
+        const mailer = document.createElement('a');
+        mailer.href = mailtoLink;
+        document.body.appendChild(mailer); mailer.click(); document.body.removeChild(mailer);
+    });
 
-        showToast('PDF ed Excel salvati nei Download!');
-
-        setTimeout(() => {
-            if (confirm("I file sono stati salvati. Vuoi aprire ora la tua app di posta per allegarli e inviare il report?")) {
-                const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
-                const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
-                const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel si trovano nella cartella Download).\n\nBuona giornata.`;
-                
-                // <--- CAMBIA QUI L'EMAIL
-                const mailtoLink = `cominellis57@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                
-                // SOLUZIONE 2: Metodo più robusto per aprire la mail
-                const mailer = document.createElement('a');
-                mailer.href = mailtoLink;
-                document.body.appendChild(mailer);
-                mailer.click();
-                document.body.removeChild(mailer);
-            }
-        }, 500); // Aumentato leggermente il ritardo per sicurezza
+    modalCloseExportBtn.addEventListener('click', () => {
+        exportModal.style.display = 'none';
+        generatedPdfBlob = null;
+        generatedWb = null;
+        generatedFileNameBase = '';
     });
 
     let deferredPrompt;
