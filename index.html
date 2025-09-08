@@ -157,20 +157,6 @@
     </div>
 </div>
 
-<!-- NUOVO PANNELLO DI CONTROLLO PER L'INVIO -->
-<div class="modal-overlay" id="export-modal">
-    <div class="modal-content">
-        <h3>Report Pronto per l'Invio</h3>
-        <p>Esegui questi 3 passaggi per completare l'invio.</p>
-        <div class="action-buttons-container" style="flex-direction: column; margin-bottom: 15px;">
-            <button id="modal-download-pdf" class="btn-info">1. Scarica PDF</button>
-            <button id="modal-download-excel" class="btn-success" style="margin-top: 10px;">2. Scarica Excel</button>
-            <button id="modal-open-mail" class="btn-primary" style="margin-top: 10px;">3. Apri App di Posta</button>
-        </div>
-        <button id="modal-close-export" class="btn-secondary">Chiudi</button>
-    </div>
-</div>
-
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -205,18 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPhotos = [];
     const unitsOfMeasure = ["", "PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
     
-    // Variabili per conservare i file generati per il modale
-    let generatedPdfBlob = null;
-    let generatedWb = null;
-    let generatedFileNameBase = '';
-
-    // Elementi del nuovo modale di esportazione
-    const exportModal = document.getElementById('export-modal');
-    const modalDownloadPdfBtn = document.getElementById('modal-download-pdf');
-    const modalDownloadExcelBtn = document.getElementById('modal-download-excel');
-    const modalOpenMailBtn = document.getElementById('modal-open-mail');
-    const modalCloseExportBtn = document.getElementById('modal-close-export');
-
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         let s = new Date(`1970-01-01T${start}:00`), e = new Date(`1970-01-01T${end}:00`);
@@ -461,7 +435,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
+    // La funzione generateFiles rimane qui per il pulsante "Salva PDF Personale"
     const generateFiles = async () => {
+        // ... (la funzione generateFiles rimane identica a prima)
         const employeeName = allInputs.employeeName.value.trim();
         const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
         const now = new Date();
@@ -541,63 +517,27 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('PDF salvato nei Download!');
     });
     
-    // NUOVA LOGICA PER IL PULSANTE "INVIA REPORT"
-    sendReportBtn.addEventListener('click', async () => {
-        if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
-        const employeeName = allInputs.employeeName.value.trim();
-        if (!employeeName) {
-            allInputs.employeeName.classList.add('error');
-            return showToast('Inserisci il tuo nome per inviare.', 'error');
+    // NUOVA LOGICA PER IL TEST
+    sendReportBtn.addEventListener('click', () => {
+        // Controlla solo che ci sia almeno un intervento, altrimenti non ha senso inviare
+        if (dailyInterventions.length === 0) {
+            return showToast('Aggiungi almeno un intervento prima di inviare.', 'error');
         }
-        
-        showToast('Preparazione file in corso...', 'info');
-        
-        const { wb, fileNameBase, pdfBlob } = await generateFiles();
-        generatedPdfBlob = pdfBlob;
-        generatedWb = wb;
-        generatedFileNameBase = fileNameBase;
-        
-        showToast('File pronti per il download!', 'success');
-        exportModal.style.display = 'flex';
-    });
 
-    // NUOVI LISTENER PER I PULSANTI DEL PANNELLO
-    modalDownloadPdfBtn.addEventListener('click', () => {
-        if (!generatedPdfBlob) return showToast('Errore: PDF non generato.', 'error');
-        const pdfUrl = URL.createObjectURL(generatedPdfBlob);
-        const a = document.createElement('a');
-        a.href = pdfUrl; a.download = `${generatedFileNameBase}.pdf`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
-        showToast('PDF salvato nei Download!', 'success');
-    });
+        showToast('Tentativo di apertura app di posta...', 'info');
 
-    modalDownloadExcelBtn.addEventListener('click', () => {
-        if (!generatedWb) return showToast('Errore: Excel non generato.', 'error');
-        XLSX.writeFile(generatedWb, `${generatedFileNameBase}.xlsx`);
-        showToast('Excel salvato nei Download!', 'success');
-    });
-
-    modalOpenMailBtn.addEventListener('click', () => {
-        const employeeName = allInputs.employeeName.value.trim();
-        if (!employeeName) return showToast('Inserisci prima il tuo nome.', 'error');
-        const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
+        const employeeName = allInputs.employeeName.value.trim() || 'Operatore';
+        const reportDate = new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT');
+        
         const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
-        const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(Ho salvato i file PDF ed Excel nella cartella Download).\n\nBuona giornata.`;
+        const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file si trovano nella cartella Download).\n\nBuona giornata.`;
         
-        // <--- CAMBIA QUI L'EMAIL
-        const mailtoLink = `cominellis57@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        // <--- CAMBIA QUI L'EMAIL (NO, l'email corretta è quella che hai fornito tu)
+        const targetEmail = 'cominellis57@gmail.com';
+        const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         
-        const mailer = document.createElement('a');
-        mailer.href = mailtoLink;
-        document.body.appendChild(mailer); mailer.click(); document.body.removeChild(mailer);
-    });
-
-    modalCloseExportBtn.addEventListener('click', () => {
-        exportModal.style.display = 'none';
-        generatedPdfBlob = null;
-        generatedWb = null;
-        generatedFileNameBase = '';
+        // Questo è il metodo più diretto possibile.
+        window.location.href = mailtoLink;
     });
 
     let deferredPrompt;
