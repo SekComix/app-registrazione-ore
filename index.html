@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Report Interventi</title>
-   
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#007bff">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icon.svg">
-   
+    
     <style>
         :root {
             --primary-color: #007bff;
@@ -22,12 +22,7 @@
             --light-gray: #f8f9fa;
             --border-color: #dee2e6;
         }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--light-gray);
-            margin: 0;
-            padding: 15px;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--light-gray); margin: 0; padding: 15px; }
         .container { max-width: 800px; margin: 0 auto; }
         .logo-container { text-align: center; margin-bottom: 20px; }
         .logo-container img { width: 80px; height: auto; border-radius: 15px; }
@@ -36,16 +31,11 @@
         h2, h4, .section-title { color: var(--primary-color); }
         h4, .section-title { border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 20px;}
         .section-title { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; }
-       
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
         input, textarea, select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; font-size: 16px; transition: border-color 0.3s; background-color: #fff; }
         textarea { border: 2px solid #ced4da; }
-       
-        input.error, textarea.error, select.error {
-            border: 2px solid var(--danger-color);
-            background-color: #fff0f0;
-        }
+        input.error, textarea.error, select.error { border: 2px solid var(--danger-color); background-color: #fff0f0; }
         .time-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: center; }
         .time-input-wrapper { position: relative; display: flex; align-items: center; }
         .clear-time-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background-color: #e9ecef; color: #495057; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; font-weight: bold; cursor: pointer; display: none; line-height: 24px; text-align: center; }
@@ -59,23 +49,15 @@
         .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-secondary { background-color: var(--secondary-color); color: white; }
         .btn-info { background-color: var(--info-color); color: white; }
-
         .action-buttons-container { display: flex; gap: 10px; }
-
         #materials-container .material-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-        .material-qty { flex: 1.5; }
-        .material-unit { flex: 2; }
-        .material-desc { flex: 4; }
+        .material-qty { flex: 1.5; } .material-unit { flex: 2; } .material-desc { flex: 4; }
         .remove-material-btn { flex-shrink: 0; width: 40px; height: 40px; padding: 0; font-size: 20px; }
         #add-material-btn { width: auto; padding: 10px 15px; font-size: 14px; margin-top: 10px; }
-       
         .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
         #summary-total { font-size: 1.2em; font-weight: bold; color: var(--success-color); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-       
-        #interventions-list .intervention-item {
-            padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; animation: fadeIn 0.5s ease-out; cursor: pointer;
-        }
+        #interventions-list .intervention-item { padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; animation: fadeIn 0.5s ease-out; cursor: pointer; }
         .intervention-item .summary-view { display: flex; justify-content: space-between; align-items: center; }
         .intervention-item .info { flex-grow: 1; }
         .intervention-item .info span { display: block; margin-bottom: 5px; word-break: break-word; }
@@ -84,42 +66,25 @@
         .intervention-item .info .details b { color: #495057; }
         .intervention-item .expand-icon { transition: transform 0.3s; font-size: 1.5em; color: var(--secondary-color); }
         .intervention-item.expanded .expand-icon { transform: rotate(180deg); }
-       
         .intervention-item .full-details { display: none; margin-top: 15px; border-top: 1px dashed var(--border-color); padding-top: 15px; }
         .intervention-item .full-details p { margin: 0 0 10px 0; white-space: pre-wrap; word-break: break-word; }
         .intervention-item.expanded .full-details { display: block; }
         .intervention-item.expanded .details { display: none; }
-       
         .intervention-item .actions { display: flex; flex-direction: column; align-items: flex-end; padding-left: 10px; }
         .intervention-item .actions button { width: auto; padding: 8px 12px; font-size: 14px; margin-bottom: 5px; }
-        
         #photo-previews { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
         .photo-preview { position: relative; }
         .photo-preview img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; }
         .remove-photo-btn { position: absolute; top: -5px; right: -5px; background: var(--danger-color); color: white; border-radius: 50%; width: 22px; height: 22px; border: none; font-weight: bold; cursor: pointer; line-height: 22px; text-align: center; }
-        .photo-buttons-container { display: flex; gap: 10px; }
-        .photo-btn-label { flex: 1; text-align: center; display: inline-block; padding: 10px 15px; background-color: var(--secondary-color); color: white; border-radius: 8px; cursor: pointer; }
+        #add-photo-label { display: inline-block; padding: 10px 15px; background-color: var(--secondary-color); color: white; border-radius: 8px; cursor: pointer; }
         #photo-input-camera, #photo-input-gallery { display: none; }
-
         #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; text-align: center;}
         #toast.show { transform: translate(-50%, 0); }
-        #toast.success { background-color: var(--success-color); }
-        #toast.error { background-color: var(--danger-color); }
-        #toast.info { background-color: var(--info-color); }
-        #install-button {
-            display: none; position: fixed; bottom: 20px; right: 20px; background-color: var(--primary-color);
-            color: white; border-radius: 50px; padding: 15px 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            font-weight: bold; z-index: 999; width: auto; border: 2px solid white;
-        }
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); z-index: 1001; justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background: white; padding: 25px; border-radius: 12px; max-width: 90%; text-align: center;
-        }
-        .modal-content h3 { margin-top: 0; }
-        .modal-content p { margin-bottom: 15px; }
+        #toast.success { background-color: var(--success-color); } #toast.error { background-color: var(--danger-color); } #toast.info { background-color: var(--info-color); }
+        #install-button { display: none; position: fixed; bottom: 20px; right: 20px; background-color: var(--primary-color); color: white; border-radius: 50px; padding: 15px 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); font-weight: bold; z-index: 999; width: auto; border: 2px solid white; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1001; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 90%; text-align: center; }
+        .modal-content h3 { margin-top: 0; } .modal-content p { margin-bottom: 15px; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -156,12 +121,11 @@
             <div id="materials-container"></div>
             <button id="add-material-btn" class="btn-secondary">+</button>
         </div>
-                <div class="form-group">
+        <div class="form-group">
             <h4 class="section-title">Foto Lavori (Opzionale)</h4>
             <div class="photo-buttons-container">
                 <input type="file" id="photo-input-camera" accept="image/*" capture="environment">
                 <label for="photo-input-camera" class="photo-btn-label">📷 Scatta Foto</label>
-                
                 <input type="file" id="photo-input-gallery" accept="image/*" multiple>
                 <label for="photo-input-gallery" class="photo-btn-label">🖼️ Scegli da Galleria</label>
             </div>
@@ -292,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (materials.length === 0) { addMaterialRow(); }
         else { materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc)); }
     };
-        const handlePhotoFiles = (files) => {
+    const handlePhotoFiles = (files) => {
         if (!files || files.length === 0) return;
         showToast('Caricamento foto...', 'info');
         let processedImages = 0;
@@ -309,16 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsDataURL(file);
         }
     };
-
-    photoInputCamera.addEventListener('change', (event) => {
-        handlePhotoFiles(event.target.files);
-        event.target.value = ''; // Resetta per permettere nuovi scatti
-    });
-
-    photoInputGallery.addEventListener('change', (event) => {
-        handlePhotoFiles(event.target.files);
-        event.target.value = ''; // Resetta per permettere nuove selezioni
-    });
+    photoInputCamera.addEventListener('change', (event) => { handlePhotoFiles(event.target.files); event.target.value = ''; });
+    photoInputGallery.addEventListener('change', (event) => { handlePhotoFiles(event.target.files); event.target.value = ''; });
     const renderPhotoPreviews = () => {
         photoPreviews.innerHTML = '';
         currentPhotos.forEach(photo => {
@@ -364,13 +320,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <div class="full-details">
-    <p><b>Data Intervento:</b> ${formattedDate}</p>
-    <p><b>Orari:</b> ${timeString || 'N/D'}</p>
-    <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
-    <p><b>Materiali Utilizzati:</b><br>${(interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') : 'Nessuno'}</p>
-    <p><b>Note:</b><br>${interv.notes || 'N/D'}</p>
-    <p><b>Foto:</b><br>${(interv.photos && interv.photos.length > 0) ? `${interv.photos.length} foto allegate` : 'Nessuna'}</p>
-</div>
+                        <p><b>Orari:</b> ${timeString || 'N/D'}</p>
+                        <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
+                        <p><b>Materiali Utilizzati:</b><br>${(interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') : 'Nessuno'}</p>
+                        <p><b>Note:</b><br>${interv.notes || 'N/D'}</p>
+                        <p><b>Foto:</b><br>${(interv.photos && interv.photos.length > 0) ? `${interv.photos.length} foto allegate` : 'Nessuna'}</p>
+                    </div>
                 `;
                 interventionsList.appendChild(item);
             });
@@ -553,63 +508,28 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('PDF salvato nei Download!');
     });
     
-            sendReportBtn.addEventListener('click', async () => {
-        if (sendReportBtn.disabled) return; // Evita doppi click
-
+    sendReportBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
-        if (!employeeName) {
-            allInputs.employeeName.classList.add('error');
-            return showToast('Inserisci il tuo nome per inviare.', 'error');
-        }
+        if (!employeeName) { allInputs.employeeName.classList.add('error'); return showToast('Inserisci il tuo nome per inviare.', 'error'); }
+        
+        showToast('Preparazione file in corso...', 'info');
+        const { wb, fileNameBase, pdfBlob } = await generateFiles();
+        
+        // Piano B: salvataggio manuale e mailto:
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        const aPdf = document.createElement('a');
+        aPdf.href = pdfUrl; aPdf.download = `${fileNameBase}.pdf`;
+        document.body.appendChild(aPdf); aPdf.click(); document.body.removeChild(aPdf);
+        URL.revokeObjectURL(pdfUrl);
+        XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
 
-        // --- PASSO 1: Preparazione e Salvataggio File ---
-        sendReportBtn.disabled = true;
-        sendReportBtn.textContent = 'Salvataggio file...';
-        showToast('Preparazione report in corso...', 'info');
-
-        try {
-            const { wb, fileNameBase, pdfBlob } = await generateFiles();
-            
-            // Salva PDF
-            const pdfUrl = URL.createObjectURL(pdfBlob);
-            const aPdf = document.createElement('a');
-            aPdf.href = pdfUrl;
-            aPdf.download = `${fileNameBase}.pdf`;
-            document.body.appendChild(aPdf);
-            aPdf.click();
-            document.body.removeChild(aPdf);
-            URL.revokeObjectURL(pdfUrl);
-
-            // Salva Excel
-            XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
-            
-            showToast('File salvati! Ora apri l\'email.', 'success', 4000);
-
-            // --- PASSO 2: Attivazione del pulsante per l'invio ---
-            sendReportBtn.disabled = false;
-            sendReportBtn.textContent = '2. Apri Email e Allega';
-            
-            // Aggiungiamo un listener temporaneo per il secondo click
-            const openEmailHandler = () => {
-                const reportDate = dailyInterventions[0].date;
-                const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
-                const body = `Buongiorno,\n\nin allegato il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel si trovano nella cartella Download del dispositivo).\n\nBuona giornata.`;
-                const mailtoLink = `cominellis57@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // <--- CAMBIA QUI L'EMAIL
-                window.location.href = mailtoLink;
-                
-                // Resetta il pulsante allo stato originale
-                sendReportBtn.textContent = 'Invia Report Ufficio';
-                sendReportBtn.removeEventListener('click', openEmailHandler); // Rimuove il listener temporaneo
-            };
-            
-            sendReportBtn.addEventListener('click', openEmailHandler, { once: true }); // { once: true } assicura che questo evento si attivi una sola volta
-
-        } catch (error) {
-            console.error("Errore durante la generazione dei file:", error);
-            showToast('Errore nella generazione dei file.', 'error');
-            sendReportBtn.disabled = false;
-            sendReportBtn.textContent = 'Invia Report Ufficio';
+        if(confirm("PDF ed Excel sono stati salvati nei Download. Vuoi aprire l'app di posta per allegarli e inviare il report?")) {
+            const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
+            const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
+            const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file si trovano nella cartella Download).\n\nBuona giornata.`;
+            const mailtoLink = `mailto:tua-email@esempio.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // <--- CAMBIA QUI L'EMAIL
+            window.location.href = mailtoLink;
         }
     });
 
