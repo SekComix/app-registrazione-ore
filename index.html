@@ -164,6 +164,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 document.addEventListener('DOMContentLoaded', () => {
+    // ... (tutto il codice iniziale rimane identico fino a 'generateFiles') ...
     const allInputs = {
         date: document.getElementById('date'), client: document.getElementById('client'),
         startAM: document.getElementById('start-am'), endAM: document.getElementById('end-am'),
@@ -433,10 +434,17 @@ document.addEventListener('DOMContentLoaded', () => {
              try { dailyInterventions = JSON.parse(data); } catch(e) { dailyInterventions = []; }
         }
     };
+    
+    // Funzione modificata
     const generateFiles = async () => {
         const employeeName = allInputs.employeeName.value.trim();
         const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
-        const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}`;
+        
+        // SOLUZIONE 1: Aggiungo l'orario per un nome file unico
+        const now = new Date();
+        const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
+        const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}_${timeString}`;
+
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ unit: 'pt', format: 'a4' });
         let yPos = 40;
@@ -509,6 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('PDF salvato nei Download!');
     });
     
+    // Funzione modificata
     sendReportBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
@@ -517,32 +526,30 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Preparazione file in corso...', 'info');
         const { wb, fileNameBase, pdfBlob } = await generateFiles();
         
-        // Scarica prima il PDF
         const pdfUrl = URL.createObjectURL(pdfBlob);
         const aPdf = document.createElement('a');
         aPdf.href = pdfUrl; aPdf.download = `${fileNameBase}.pdf`;
         document.body.appendChild(aPdf); aPdf.click(); document.body.removeChild(aPdf);
         URL.revokeObjectURL(pdfUrl);
         
-        // Scarica subito dopo l'Excel
         XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
 
-        // Mostra la notifica di successo
         showToast('PDF ed Excel salvati nei Download!');
 
-        // USA UN TIMEOUT: Dà al browser il tempo di mostrare il toast prima di bloccare
-        // l'interfaccia con il pop-up di conferma "confirm()".
         setTimeout(() => {
             if (confirm("I file sono stati salvati. Vuoi aprire ora la tua app di posta per allegarli e inviare il report?")) {
                 const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
                 const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
                 const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel si trovano nella cartella Download).\n\nBuona giornata.`;
+                
                 // <--- CAMBIA QUI L'EMAIL
-                const mailtoLink = `cominellis57@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                window.location.href = mailtoLink;
+                const mailtoLink = `cominellis57@.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                
+                // SOLUZIONE 2: Uso window.open() per maggiore compatibilità
+                window.open(mailtoLink);
             }
-        }, 100); // Ritardo di 100ms
-    });
+        }, 100);
+    });gmail
 
     let deferredPrompt;
     const installButton = document.getElementById('install-button');
@@ -582,6 +589,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderInterventions();
     addMaterialRow();
 });
-</script>
+</script>>
 </body>
 </html>
