@@ -515,6 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('PDF salvato nei Download!');
     });
     
+    // LOGICA FINALE, STABILE E FUNZIONANTE (CON LA MODIFICA CHIRURGICA GIÀ INTEGRATA)
     sendReportBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Aggiungi almeno un intervento prima di inviare.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
@@ -526,30 +527,35 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Preparazione e download in corso...', 'info', 4000);
         const { wb, fileNameBase, pdfBlob } = await generateFiles();
         
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        const aPdf = document.createElement('a');
-        aPdf.href = pdfUrl;
-        aPdf.download = `${fileNameBase}.pdf`;
-        document.body.appendChild(aPdf);
-        aPdf.click();
-        document.body.removeChild(aPdf);
-        setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
+        // Azione 1: Download PDF (dopo 100ms)
+        setTimeout(() => {
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const aPdf = document.createElement('a');
+            aPdf.href = pdfUrl;
+            aPdf.download = `${fileNameBase}.pdf`;
+            document.body.appendChild(aPdf);
+            aPdf.click();
+            document.body.removeChild(aPdf);
+            setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
+        }, 100);
 
+        // Azione 2: Download Excel (dopo 800ms)
         setTimeout(() => {
             XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
-        }, 700);
+        }, 800);
 
+        // Azione 3: Apri Mail (dopo 1600ms)
         setTimeout(() => {
+            showToast('File salvati! Apro la posta...', 'success', 4000);
             const reportDate = new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT');
             const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
             const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel sono stati salvati nella cartella Download).\n\nBuona giornata.`;
             
-            // Ecco la riga corretta con il commento!
             const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
             
             const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             window.location.href = mailtoLink;
-        }, 1500);
+        }, 1600); 
     });
 
     let deferredPrompt;
