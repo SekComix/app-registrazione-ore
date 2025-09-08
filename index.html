@@ -51,7 +51,7 @@
         .btn-info { background-color: var(--info-color); color: white; }
         .action-buttons-container { display: flex; gap: 10px; }
         #materials-container .material-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-        .material-qty { flex: 1.5; } .material-unit { flex: 2; } .material-desc { flex: 4; }
+        .material-qty { flex: 1.5; } .material-unit { flex: 2; font-size: 14px; } .material-desc { flex: 4; } /* Modifica #4: Carattere Unità di Misura */
         .remove-material-btn { flex-shrink: 0; width: 40px; height: 40px; padding: 0; font-size: 20px; }
         #add-material-btn { width: auto; padding: 10px 15px; font-size: 14px; margin-top: 10px; }
         .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
@@ -76,7 +76,7 @@
         .photo-preview { position: relative; }
         .photo-preview img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; }
         .remove-photo-btn { position: absolute; top: -5px; right: -5px; background: var(--danger-color); color: white; border-radius: 50%; width: 22px; height: 22px; border: none; font-weight: bold; cursor: pointer; line-height: 22px; text-align: center; }
-        #add-photo-label { display: inline-block; padding: 10px 15px; background-color: var(--secondary-color); color: white; border-radius: 8px; cursor: pointer; }
+        .photo-btn-label { display: inline-flex; align-items: center; gap: 8px; padding: 10px 15px; background-color: var(--secondary-color); color: white; border-radius: 8px; cursor: pointer; } /* Modifica #2: Preparazione per Icone */
         #photo-input-camera, #photo-input-gallery { display: none; }
         #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; text-align: center;}
         #toast.show { transform: translate(-50%, 0); }
@@ -123,11 +123,11 @@
         </div>
         <div class="form-group">
             <h4 class="section-title">Foto Lavori (Opzionale)</h4>
-            <div class="photo-buttons-container">
+            <div class="action-buttons-container"> <!-- Contenitore per allineare i pulsanti -->
                 <input type="file" id="photo-input-camera" accept="image/*" capture="environment">
-                <label for="photo-input-camera" class="photo-btn-label"> Scatta Foto</label>
+                <label for="photo-input-camera" class="photo-btn-label">📷 Scatta Foto</label> <!-- Modifica #2: Icone Aggiunte -->
                 <input type="file" id="photo-input-gallery" accept="image/*" multiple>
-                <label for="photo-input-gallery" class="photo-btn-label"> Scegli da Galleria</label>
+                <label for="photo-input-gallery" class="photo-btn-label">🖼️ Scegli da Galleria</label> <!-- Modifica #2: Icone Aggiunte -->
             </div>
             <div id="photo-previews"></div>
         </div>
@@ -136,7 +136,7 @@
     </div>
     <div class="card" id="summary-card">
         <div class="summary-header">
-            <h2>Riepilogo Giornata</h2>
+            <h2 id="summary-title">Riepilogo Interventi</h2> <!-- Modifica #1: Testo Riepilogo -->
             <div id="summary-total">Totale: 0h 0min</div>
         </div>
         <div id="interventions-list" style="margin-top: 15px;"></div>
@@ -157,7 +157,6 @@
     </div>
 </div>
 
-<!-- MODALE PER IL SALVATAGGIO DEI FILE (SENZA "ENTRAMBI") -->
 <div class="modal-overlay" id="save-modal">
     <div class="modal-content">
         <h3>Salva Report</h3>
@@ -325,7 +324,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalMinutesSummary += interv.totalMinutes;
                 const item = document.createElement('div');
                 item.className = 'intervention-item';
-                let timeString = (interv.startAM && interv.endAM ? `M:${interv.startAM}-${interv.endAM}` : '') + ((interv.startAM && interv.endAM && interv.startPM && interv.endPM) ? ', ' : '') + (interv.startPM && interv.endPM ? `P:${interv.startPM}-${interv.endPM}` : '');
+                
+                // Modifica #5: Logica per formattazione Orari
+                let timeString = '';
+                if (interv.startAM && interv.endAM) {
+                    timeString += `<b>Mattino:</b> ${interv.startAM}-${interv.endAM}`;
+                }
+                if (interv.startPM && interv.endPM) {
+                    if (timeString !== '') timeString += '<br>';
+                    timeString += `<b>Pomeriggio:</b> ${interv.startPM}-${interv.endPM}`;
+                }
+                if (timeString === '') timeString = 'N/D';
+
                 const formattedDate = new Date(interv.date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
                 item.innerHTML = `
                     <div class="summary-view">
@@ -344,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="full-details">
                         <p><b>Data Intervento:</b> ${formattedDate}</p>
-                        <p><b>Orari:</b> ${timeString || 'N/D'}</p>
+                        <p><b>Orari:</b><br>${timeString}</p>
                         <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
                         <p><b>Materiali Utilizzati:</b><br>${(interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') : 'Nessuno'}</p>
                         <p><b>Note:</b><br>${interv.notes || 'N/D'}</p>
@@ -515,7 +525,38 @@ document.addEventListener('DOMContentLoaded', () => {
             if (index < dailyInterventions.length - 1) { doc.setLineDashPattern([5, 5], 0); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); doc.setLineDashPattern([], 0); yPos += 20; }
         }
         const pdfBlob = doc.output('blob');
-        const excelData = dailyInterventions.flatMap(i => i.materials.length > 0 ? i.materials.map(m => ({ Operatore: employeeName, Data: i.date, Cliente: i.client, Ore_Totali_Intervento: i.totalHours, Lavoro_Svolto: i.workDone, Note: i.notes, Qta_Materiale: m.qty, UM_Materiale: m.unit, Desc_Materiale: m.desc })) : [{ Operatore: employeeName, Data: i.date, Cliente: i.client, Ore_Totali_Intervento: i.totalHours, Lavoro_Svolto: i.workDone, Note: i.notes, Qta_Materiale: '', UM_Materiale: '', Desc_Materiale: '' }] );
+        
+        // Modifica #3: Logica Esportazione Excel
+        const excelData = [];
+        dailyInterventions.forEach(i => {
+            if (i.materials.length > 0) {
+                i.materials.forEach((m, index) => {
+                    if (index === 0) {
+                        // Prima riga del materiale per questo intervento: scrivo tutti i dati
+                        excelData.push({
+                            'Dipendente': employeeName, 'Data': i.date, 'Cliente': i.client, 
+                            'Ore_Totali_Intervento': i.totalHours, 'Lavoro_Svolto': i.workDone, 'Note': i.notes,
+                            'Qta_Materiale': m.qty, 'UM_Materiale': m.unit, 'Desc_Materiale': m.desc
+                        });
+                    } else {
+                        // Righe successive per i materiali: scrivo solo i dati del materiale
+                        excelData.push({
+                            'Dipendente': '', 'Data': '', 'Cliente': '', 
+                            'Ore_Totali_Intervento': '', 'Lavoro_Svolto': '', 'Note': '',
+                            'Qta_Materiale': m.qty, 'UM_Materiale': m.unit, 'Desc_Materiale': m.desc
+                        });
+                    }
+                });
+            } else {
+                // Intervento senza materiali: scrivo una sola riga
+                excelData.push({
+                    'Dipendente': employeeName, 'Data': i.date, 'Cliente': i.client, 
+                    'Ore_Totali_Intervento': i.totalHours, 'Lavoro_Svolto': i.workDone, 'Note': i.notes,
+                    'Qta_Materiale': '', 'UM_Materiale': '', 'Desc_Materiale': ''
+                });
+            }
+        });
+
         const ws = XLSX.utils.json_to_sheet(excelData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Interventi");
