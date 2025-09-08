@@ -51,10 +51,10 @@
         .btn-info { background-color: var(--info-color); color: white; }
         .action-buttons-container { display: flex; gap: 10px; }
         #materials-container .material-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-        .material-qty { flex: 1.5; } .material-unit { flex: 2; font-size: 14px; } .material-desc { flex: 4; } /* Modifica #4: Carattere Unità di Misura */
+        .material-qty { flex: 1.5; } .material-unit { flex: 2; font-size: 14px; } .material-desc { flex: 4; }
         .remove-material-btn { flex-shrink: 0; width: 40px; height: 40px; padding: 0; font-size: 20px; }
         #add-material-btn { width: auto; padding: 10px 15px; font-size: 14px; margin-top: 10px; }
-        .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
+        .summary-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap; gap: 10px; }
         #summary-total { font-size: 1.2em; font-weight: bold; color: var(--success-color); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         #interventions-list .intervention-item { padding: 15px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; animation: fadeIn 0.5s ease-out; cursor: pointer; }
@@ -76,7 +76,7 @@
         .photo-preview { position: relative; }
         .photo-preview img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; }
         .remove-photo-btn { position: absolute; top: -5px; right: -5px; background: var(--danger-color); color: white; border-radius: 50%; width: 22px; height: 22px; border: none; font-weight: bold; cursor: pointer; line-height: 22px; text-align: center; }
-        .photo-btn-label { display: inline-flex; align-items: center; gap: 8px; padding: 10px 15px; background-color: var(--secondary-color); color: white; border-radius: 8px; cursor: pointer; } /* Modifica #2: Preparazione per Icone */
+        .photo-btn-label { display: inline-flex; align-items: center; gap: 8px; padding: 10px 15px; background-color: var(--secondary-color); color: white; border-radius: 8px; cursor: pointer; }
         #photo-input-camera, #photo-input-gallery { display: none; }
         #toast { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150%); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; z-index: 1000; transition: transform 0.4s ease-in-out; font-weight: bold; text-align: center;}
         #toast.show { transform: translate(-50%, 0); }
@@ -102,6 +102,7 @@
         <div class="form-group"><label for="employee-name">Il Tuo Nome</label><input type="text" id="employee-name" placeholder="Es. Mario Rossi"></div>
         <div class="form-group"><label for="date">Data</label><input type="date" id="date"></div>
         <div class="form-group"><label for="client">Cliente</label><input type="text" id="client" placeholder="Nome del cliente"></div>
+        <div class="form-group"><label for="address">Indirizzo</label><input type="text" id="address" placeholder="Indirizzo dell'intervento"></div> <!-- Nuovo Campo Indirizzo -->
         <h4>Mattino</h4>
         <div class="time-section">
             <div><label for="start-am">Ora Inizio</label><div class="time-input-wrapper"><input type="time" id="start-am" placeholder=" "><button class="clear-time-btn" data-target="start-am">&times;</button></div></div>
@@ -123,11 +124,11 @@
         </div>
         <div class="form-group">
             <h4 class="section-title">Foto Lavori (Opzionale)</h4>
-            <div class="action-buttons-container"> <!-- Contenitore per allineare i pulsanti -->
+            <div class="action-buttons-container">
                 <input type="file" id="photo-input-camera" accept="image/*" capture="environment">
-                <label for="photo-input-camera" class="photo-btn-label">📷 Scatta Foto</label> <!-- Modifica #2: Icone Aggiunte -->
+                <label for="photo-input-camera" class="photo-btn-label">📷 Scatta Foto</label>
                 <input type="file" id="photo-input-gallery" accept="image/*" multiple>
-                <label for="photo-input-gallery" class="photo-btn-label">🖼️ Scegli da Galleria</label> <!-- Modifica #2: Icone Aggiunte -->
+                <label for="photo-input-gallery" class="photo-btn-label">🖼️ Scegli da Galleria</label>
             </div>
             <div id="photo-previews"></div>
         </div>
@@ -136,8 +137,9 @@
     </div>
     <div class="card" id="summary-card">
         <div class="summary-header">
-            <h2 id="summary-title">Riepilogo Interventi</h2> <!-- Modifica #1: Testo Riepilogo -->
+            <h2 id="summary-title">Riepilogo Interventi</h2>
             <div id="summary-total">Totale: 0h 0min</div>
+            <button id="clear-all-btn" class="btn-danger" style="width: auto; padding: 8px 12px; font-size: 14px;">Svuota Tutto</button> <!-- Nuovo Pulsante Svuota Tutto -->
         </div>
         <div id="interventions-list" style="margin-top: 15px;"></div>
         <div class="form-group action-buttons-container" style="margin-top: 20px;">
@@ -178,6 +180,7 @@ if ('serviceWorker' in navigator) {
 document.addEventListener('DOMContentLoaded', () => {
     const allInputs = {
         date: document.getElementById('date'), client: document.getElementById('client'),
+        address: document.getElementById('address'), // Nuovo Campo
         startAM: document.getElementById('start-am'), endAM: document.getElementById('end-am'),
         startPM: document.getElementById('start-pm'), endPM: document.getElementById('end-pm'),
         workDone: document.getElementById('work-done'), notes: document.getElementById('notes'),
@@ -192,6 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const interventionsList = document.getElementById('interventions-list');
     const saveReportBtn = document.getElementById('save-report-btn');
     const sendReportBtn = document.getElementById('send-report-btn');
+    const clearAllBtn = document.getElementById('clear-all-btn'); // Nuovo Pulsante
     const formTitle = document.getElementById('form-title');
     const interventionIdInput = document.getElementById('intervention-id');
     const toast = document.getElementById('toast');
@@ -319,13 +323,14 @@ document.addEventListener('DOMContentLoaded', () => {
         dailyInterventions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         if (dailyInterventions.length === 0) {
             interventionsList.innerHTML = '<p>Nessun intervento aggiunto.</p>';
+            clearAllBtn.style.display = 'none'; // Nasconde il pulsante se non ci sono interventi
         } else {
+            clearAllBtn.style.display = 'block'; // Mostra il pulsante se ci sono interventi
             dailyInterventions.forEach(interv => {
                 totalMinutesSummary += interv.totalMinutes;
                 const item = document.createElement('div');
                 item.className = 'intervention-item';
                 
-                // Modifica #5: Logica per formattazione Orari
                 let timeString = '';
                 if (interv.startAM && interv.endAM) {
                     timeString += `<b>Mattino:</b> ${interv.startAM}-${interv.endAM}`;
@@ -354,6 +359,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="full-details">
                         <p><b>Data Intervento:</b> ${formattedDate}</p>
+                        <p><b>Cliente:</b> ${interv.client}</p>
+                        <p><b>Indirizzo:</b> ${interv.address || 'N/D'}</p>
                         <p><b>Orari:</b><br>${timeString}</p>
                         <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
                         <p><b>Materiali Utilizzati:</b><br>${(interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') : 'Nessuno'}</p>
@@ -380,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     addBtn.addEventListener('click', () => {
         Object.values(allInputs).forEach(field => field.classList.remove('error'));
-        const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone];
+        const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone, allInputs.address];
         let textIsValid = true;
         requiredTextFields.forEach(field => { if (!field.value.trim()) { field.classList.add('error'); textIsValid = false; } });
         if (!textIsValid) return showToast('Compila i campi evidenziati!', 'error');
@@ -413,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalMinutes <= 0) return showToast('Inserire almeno un intervallo di ore valido.', 'error');
         const intervention = {
             id: interventionIdInput.value || Date.now(),
-            date: allInputs.date.value, client: allInputs.client.value,
+            date: allInputs.date.value, client: allInputs.client.value, address: allInputs.address.value, // Salvataggio Indirizzo
             startAM: allInputs.startAM.value, endAM: allInputs.endAM.value,
             startPM: allInputs.startPM.value, endPM: allInputs.endPM.value,
             totalHours: formatMinutes(totalMinutes), totalMinutes: totalMinutes,
@@ -442,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 formTitle.textContent = 'Modifica Intervento';
                 addBtn.textContent = 'Salva Modifiche';
                 interventionIdInput.value = interv.id;
-                allInputs.date.value = interv.date; allInputs.client.value = interv.client;
+                allInputs.date.value = interv.date; allInputs.client.value = interv.client; allInputs.address.value = interv.address; // Modifica Indirizzo
                 allInputs.startAM.value = interv.startAM; allInputs.endAM.value = interv.endAM;
                 allInputs.startPM.value = interv.startPM; allInputs.endPM.value = interv.endPM;
                 allInputs.workDone.value = interv.workDone; setMaterialsData(interv.materials);
@@ -492,8 +499,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const checkPageBreak = (space) => { if (yPos + space > pageHeight - margin) { doc.addPage(); yPos = margin; addHeader(interv.date); } };
             checkPageBreak(120);
             doc.setFontSize(14); doc.setFont(undefined, 'bold');
-            doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos); yPos += 20;
-            doc.setFontSize(10); doc.setFont(undefined, 'normal');
+            doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos); yPos += 15;
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text(`Indirizzo: ${interv.address || 'N/D'}`, margin, yPos); yPos += 20; // Aggiunto Indirizzo al PDF
             let timeString = (interv.startAM && interv.endAM ? `Mattino: ${interv.startAM}-${interv.endAM}` : '') + ((interv.startAM && interv.endAM && interv.startPM && interv.endPM) ? ' | ' : '') + (interv.startPM && interv.endPM ? `Pomeriggio: ${interv.startPM}-${interv.endPM}` : '');
             doc.text(`Orari: ${timeString || 'N/D'}`, margin, yPos);
             doc.text(`Ore Totali: ${interv.totalHours}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 20;
@@ -526,38 +535,68 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const pdfBlob = doc.output('blob');
         
-        // Modifica #3: Logica Esportazione Excel
         const excelData = [];
         dailyInterventions.forEach(i => {
-            if (i.materials.length > 0) {
-                i.materials.forEach((m, index) => {
-                    if (index === 0) {
-                        // Prima riga del materiale per questo intervento: scrivo tutti i dati
-                        excelData.push({
-                            'Dipendente': employeeName, 'Data': i.date, 'Cliente': i.client, 
-                            'Ore_Totali_Intervento': i.totalHours, 'Lavoro_Svolto': i.workDone, 'Note': i.notes,
-                            'Qta_Materiale': m.qty, 'UM_Materiale': m.unit, 'Desc_Materiale': m.desc
-                        });
-                    } else {
-                        // Righe successive per i materiali: scrivo solo i dati del materiale
-                        excelData.push({
-                            'Dipendente': '', 'Data': '', 'Cliente': '', 
-                            'Ore_Totali_Intervento': '', 'Lavoro_Svolto': '', 'Note': '',
-                            'Qta_Materiale': m.qty, 'UM_Materiale': m.unit, 'Desc_Materiale': m.desc
-                        });
-                    }
-                });
-            } else {
-                // Intervento senza materiali: scrivo una sola riga
-                excelData.push({
-                    'Dipendente': employeeName, 'Data': i.date, 'Cliente': i.client, 
-                    'Ore_Totali_Intervento': i.totalHours, 'Lavoro_Svolto': i.workDone, 'Note': i.notes,
-                    'Qta_Materiale': '', 'UM_Materiale': '', 'Desc_Materiale': ''
-                });
+            const hasMaterials = i.materials.length > 0;
+            const hasAM = i.startAM && i.endAM;
+            const hasPM = i.startPM && i.endPM;
+            let firstRowWritten = false;
+            
+            const writeFirstRow = (oraInizio, oraFine, durata) => {
+                const rowData = {
+                    'Data': i.date, 'Cliente': i.client, 'Indirizzo': i.address, 'Dipendente': employeeName,
+                    'Ora Inizio': oraInizio, 'Ora Fine': oraFine, 'Durata': durata,
+                    'Lavoro Svolto': i.workDone, 'Note': i.notes
+                };
+                if (hasMaterials) {
+                    rowData['Materiale'] = i.materials[0].desc;
+                    rowData['Q.ta'] = i.materials[0].qty;
+                    rowData['UM'] = i.materials[0].unit;
+                } else {
+                    rowData['Materiale'] = ''; rowData['Q.ta'] = ''; rowData['UM'] = '';
+                }
+                excelData.push(rowData);
+                firstRowWritten = true;
+            };
+
+            if (hasAM) {
+                writeFirstRow(i.startAM, i.endAM, formatMinutes(calculateMinutes(i.startAM, i.endAM)));
+            }
+            if (hasPM) {
+                const rowData = {
+                    'Data': !firstRowWritten ? i.date : '',
+                    'Cliente': !firstRowWritten ? i.client : '',
+                    'Indirizzo': !firstRowWritten ? i.address : '',
+                    'Dipendente': !firstRowWritten ? employeeName : '',
+                    'Ora Inizio': i.startPM, 'Ora Fine': i.endPM, 'Durata': formatMinutes(calculateMinutes(i.startPM, i.endPM)),
+                    'Lavoro Svolto': !firstRowWritten ? i.workDone : '',
+                    'Note': !firstRowWritten ? i.notes : ''
+                };
+                 if (!firstRowWritten && hasMaterials) {
+                    rowData['Materiale'] = i.materials[0].desc; rowData['Q.ta'] = i.materials[0].qty; rowData['UM'] = i.materials[0].unit;
+                } else {
+                    rowData['Materiale'] = ''; rowData['Q.ta'] = ''; rowData['UM'] = '';
+                }
+                excelData.push(rowData);
+                 if (!firstRowWritten) firstRowWritten = true;
+            }
+            if (!hasAM && !hasPM) { // Caso senza orari ma con materiali
+                 writeFirstRow('', '', i.totalHours);
+            }
+
+            // Aggiunge le righe per i materiali rimanenti
+            if (hasMaterials) {
+                for (let j = 1; j < i.materials.length; j++) {
+                    excelData.push({
+                        'Data': '', 'Cliente': '', 'Indirizzo': '', 'Dipendente': '',
+                        'Ora Inizio': '', 'Ora Fine': '', 'Durata': '', 'Lavoro Svolto': '', 'Note': '',
+                        'Materiale': i.materials[j].desc, 'Q.ta': i.materials[j].qty, 'UM': i.materials[j].unit,
+                    });
+                }
             }
         });
 
-        const ws = XLSX.utils.json_to_sheet(excelData);
+        const ws = XLSX.utils.json_to_sheet(excelData, {header: ['Data', 'Cliente', 'Indirizzo', 'Dipendente', 'Ora Inizio', 'Ora Fine', 'Durata', 'Lavoro Svolto', 'Note', 'Materiale', 'Q.ta', 'UM']});
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Interventi");
         return { pdfBlob, wb, fileNameBase };
@@ -599,6 +638,17 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = mailtoLink;
     });
     
+    clearAllBtn.addEventListener('click', () => {
+        if (dailyInterventions.length === 0) return;
+        const confirmationText = "ATTENZIONE! Stai per eliminare TUTTI gli interventi salvati. Assicurati di aver prima scaricato e inviato il report via email. L'operazione non è reversibile. Confermi?";
+        if (confirm(confirmationText)) {
+            dailyInterventions = [];
+            renderInterventions();
+            saveToLocalStorage();
+            showToast('Elenco interventi pulito!', 'success');
+        }
+    });
+
     modalSavePdfBtn.addEventListener('click', () => {
         if (!generatedPdfBlob) return showToast('Errore: PDF non generato.', 'error');
         const pdfUrl = URL.createObjectURL(generatedPdfBlob);
