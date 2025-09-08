@@ -314,12 +314,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div style="display: flex; align-items: center;">
                            <span class="expand-icon">&#9660;</span>
                            <div class="actions">
-                              <button class="btn-secondary" data-id="${interv.id}" data-action="edit">Modifica</button>
-                              <button class="btn-danger" data-id="${interv.id}" data-action="delete">Elimina</button>
+                                <button class="btn-secondary" data-id="${interv.id}" data-action="edit">Modifica</button>
+                                <button class="btn-danger" data-id="${interv.id}" data-action="delete">Elimina</button>
                            </div>
                         </div>
                     </div>
                     <div class="full-details">
+                        <p><b>Data Intervento:</b> ${formattedDate}</p>
                         <p><b>Orari:</b> ${timeString || 'N/D'}</p>
                         <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
                         <p><b>Materiali Utilizzati:</b><br>${(interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') : 'Nessuno'}</p>
@@ -516,42 +517,61 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Preparazione file in corso...', 'info');
         const { wb, fileNameBase, pdfBlob } = await generateFiles();
         
-        // Piano B: salvataggio manuale e mailto:
+        // Scarica prima il PDF
         const pdfUrl = URL.createObjectURL(pdfBlob);
         const aPdf = document.createElement('a');
         aPdf.href = pdfUrl; aPdf.download = `${fileNameBase}.pdf`;
         document.body.appendChild(aPdf); aPdf.click(); document.body.removeChild(aPdf);
         URL.revokeObjectURL(pdfUrl);
+        
+        // Scarica subito dopo l'Excel
         XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
 
-        if(confirm("PDF ed Excel sono stati salvati nei Download. Vuoi aprire l'app di posta per allegarli e inviare il report?")) {
-            const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
-            const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
-            const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file si trovano nella cartella Download).\n\nBuona giornata.`;
-            const mailtoLink = `cominellis57@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; // <--- CAMBIA QUI L'EMAIL
-            window.location.href = mailtoLink;
-        }
+        // Mostra la notifica di successo
+        showToast('PDF ed Excel salvati nei Download!');
+
+        // USA UN TIMEOUT: Dà al browser il tempo di mostrare il toast prima di bloccare
+        // l'interfaccia con il pop-up di conferma "confirm()".
+        setTimeout(() => {
+            if (confirm("I file sono stati salvati. Vuoi aprire ora la tua app di posta per allegarli e inviare il report?")) {
+                const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
+                const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
+                const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel si trovano nella cartella Download).\n\nBuona giornata.`;
+                // <--- CAMBIA QUI L'EMAIL
+                const mailtoLink = `mailto:tua-email@esempio.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                window.location.href = mailtoLink;
+            }
+        }, 100); // Ritardo di 100ms
     });
 
     let deferredPrompt;
     const installButton = document.getElementById('install-button');
     const installModal = document.getElementById('install-instructions-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
+    
+    // Mostra il pulsante di installazione solo se l'app non è già in modalità standalone (installata)
     if (window.matchMedia('(display-mode: standalone)').matches === false) {
         installButton.style.display = 'block';
     }
+
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
+        // Assicura che il pulsante sia visibile se il browser supporta l'installazione
         installButton.style.display = 'block';
     });
+
     installButton.addEventListener('click', async () => {
+        // Se deferredPrompt è disponibile, mostra il prompt di installazione nativo
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') { installButton.style.display = 'none'; }
+            if (outcome === 'accepted') {
+                installButton.style.display = 'none'; // Nasconde il pulsante dopo l'installazione
+            }
             deferredPrompt = null;
         } else {
+            // Altrimenti, mostra le istruzioni manuali (per browser come Safari)
             installModal.style.display = 'flex';
         }
     });
