@@ -516,35 +516,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // LOGICA FINALE, STABILE E FUNZIONANTE (CON LA MODIFICA CHIRURGICA GIÀ INTEGRATA)
-    sendReportBtn.addEventListener('click', async () => {
-        if (dailyInterventions.length === 0) return showToast('Aggiungi almeno un intervento prima di inviare.', 'error');
-        const employeeName = allInputs.employeeName.value.trim();
-        if (!employeeName) {
-            allInputs.employeeName.classList.add('error');
-            return showToast('Inserisci il tuo nome per inviare.', 'error');
-        }
-        
-        showToast('Preparazione e download in corso...', 'info', 4000);
-        const { wb, fileNameBase, pdfBlob } = await generateFiles();
-        
-        // Azione 1: Download PDF (dopo 100ms)
-        setTimeout(() => {
-            const pdfUrl = URL.createObjectURL(pdfBlob);
-            const aPdf = document.createElement('a');
-            aPdf.href = pdfUrl;
-            aPdf.download = `${fileNameBase}.pdf`;
-            document.body.appendChild(aPdf);
-            aPdf.click();
-            document.body.removeChild(aPdf);
-            setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
-        }, 100);
+   // +++ INIZIO NUOVO BLOCCO DA INCOLLARE +++
 
-        // Azione 2: Download Excel (dopo 800ms)
-        setTimeout(() => {
-            XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
-        }, 800);
+if (dailyInterventions.length === 0) return showToast('Aggiungi almeno un intervento prima di inviare.', 'error');
+const employeeName = allInputs.employeeName.value.trim();
+if (!employeeName) {
+    allInputs.employeeName.classList.add('error');
+    return showToast('Inserisci il tuo nome per inviare.', 'error');
+}
 
-        // Azione 3: Apri Mail (dopo 1600ms)
+showToast('Preparazione e download in corso...', 'info', 4000);
+const { wb, fileNameBase, pdfBlob } = await generateFiles();
+
+// Creiamo una sequenza nidificata per essere sicuri che i comandi vengano eseguiti in ordine.
+
+// Azione 1: Download PDF.
+setTimeout(() => {
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    const aPdf = document.createElement('a');
+    aPdf.href = pdfUrl;
+    aPdf.download = `${fileNameBase}.pdf`;
+    document.body.appendChild(aPdf);
+    aPdf.click();
+    document.body.removeChild(aPdf);
+    setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
+
+    // Azione 2: Download Excel (parte solo dopo che il comando PDF è stato dato).
+    setTimeout(() => {
+        XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
+
+        // Azione 3: Apri Mail (parte solo dopo che il comando Excel è stato dato).
         setTimeout(() => {
             showToast('File salvati! Apro la posta...', 'success', 4000);
             const reportDate = new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT');
@@ -555,8 +556,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             window.location.href = mailtoLink;
-        }, 1600); 
-    });
+        }, 800); // Ritardo tra Excel e Mail
+    }, 800); // Ritardo tra PDF e Excel
+}, 100); // Inizia la sequenza dopo 100ms
+
+// +++ FINE NUOVO BLOCCO DA INCOLLARE +++
 
     let deferredPrompt;
     const installButton = document.getElementById('install-button');
