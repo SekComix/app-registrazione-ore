@@ -435,16 +435,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // Funzione modificata
     const generateFiles = async () => {
         const employeeName = allInputs.employeeName.value.trim();
         const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
-        
-        // SOLUZIONE 1: Aggiungo l'orario per un nome file unico
         const now = new Date();
         const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
         const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}_${timeString}`;
-
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ unit: 'pt', format: 'a4' });
         let yPos = 40;
@@ -504,6 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return { pdfBlob, wb, fileNameBase };
     };
     
+    // FUNZIONE CORRETTA
     savePdfBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da salvare.', 'error');
         if (!allInputs.employeeName.value.trim()) { allInputs.employeeName.classList.add('error'); return showToast('Inserisci il tuo nome per salvare il PDF.', 'error'); }
@@ -512,12 +509,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const pdfUrl = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
         a.href = pdfUrl; a.download = `${fileNameBase}.pdf`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(pdfUrl);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // SOLUZIONE 1: Aggiunto timeout per dare tempo al browser di scaricare
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 100); 
+
         showToast('PDF salvato nei Download!');
     });
     
-    // Funzione modificata
+    // FUNZIONE CORRETTA
     sendReportBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da inviare.', 'error');
         const employeeName = allInputs.employeeName.value.trim();
@@ -529,8 +531,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const pdfUrl = URL.createObjectURL(pdfBlob);
         const aPdf = document.createElement('a');
         aPdf.href = pdfUrl; aPdf.download = `${fileNameBase}.pdf`;
-        document.body.appendChild(aPdf); aPdf.click(); document.body.removeChild(aPdf);
-        URL.revokeObjectURL(pdfUrl);
+        document.body.appendChild(aPdf);
+        aPdf.click();
+        document.body.removeChild(aPdf);
+        
+        // SOLUZIONE 1: Aggiunto timeout per dare tempo al browser di scaricare il PDF
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
         
         XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
 
@@ -543,20 +549,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel si trovano nella cartella Download).\n\nBuona giornata.`;
                 
                 // <--- CAMBIA QUI L'EMAIL
-                const mailtoLink = `cominellis57@.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                const mailtoLink = `cominellis57@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                 
-                // SOLUZIONE 2: Uso window.open() per maggiore compatibilità
-                window.open(mailtoLink);
+                // SOLUZIONE 2: Metodo più robusto per aprire la mail
+                const mailer = document.createElement('a');
+                mailer.href = mailtoLink;
+                document.body.appendChild(mailer);
+                mailer.click();
+                document.body.removeChild(mailer);
             }
-        }, 100);
-    });gmail
+        }, 500); // Aumentato leggermente il ritardo per sicurezza
+    });
 
     let deferredPrompt;
     const installButton = document.getElementById('install-button');
     const installModal = document.getElementById('install-instructions-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
     
-    // Mostra il pulsante di installazione solo se l'app non è già in modalità standalone (installata)
     if (window.matchMedia('(display-mode: standalone)').matches === false) {
         installButton.style.display = 'block';
     }
@@ -564,21 +573,18 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        // Assicura che il pulsante sia visibile se il browser supporta l'installazione
         installButton.style.display = 'block';
     });
 
     installButton.addEventListener('click', async () => {
-        // Se deferredPrompt è disponibile, mostra il prompt di installazione nativo
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
             if (outcome === 'accepted') {
-                installButton.style.display = 'none'; // Nasconde il pulsante dopo l'installazione
+                installButton.style.display = 'none';
             }
             deferredPrompt = null;
         } else {
-            // Altrimenti, mostra le istruzioni manuali (per browser come Safari)
             installModal.style.display = 'flex';
         }
     });
@@ -589,6 +595,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderInterventions();
     addMaterialRow();
 });
-</script>>
+</script>
 </body>
 </html>
