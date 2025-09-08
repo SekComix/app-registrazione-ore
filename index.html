@@ -435,9 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // La funzione generateFiles rimane qui per il pulsante "Salva PDF Personale"
     const generateFiles = async () => {
-        // ... (la funzione generateFiles rimane identica a prima)
         const employeeName = allInputs.employeeName.value.trim();
         const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
         const now = new Date();
@@ -517,27 +515,41 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('PDF salvato nei Download!');
     });
     
-    // NUOVA LOGICA PER IL TEST
-    sendReportBtn.addEventListener('click', () => {
-        // Controlla solo che ci sia almeno un intervento, altrimenti non ha senso inviare
-        if (dailyInterventions.length === 0) {
-            return showToast('Aggiungi almeno un intervento prima di inviare.', 'error');
+    sendReportBtn.addEventListener('click', async () => {
+        if (dailyInterventions.length === 0) return showToast('Aggiungi almeno un intervento prima di inviare.', 'error');
+        const employeeName = allInputs.employeeName.value.trim();
+        if (!employeeName) {
+            allInputs.employeeName.classList.add('error');
+            return showToast('Inserisci il tuo nome per inviare.', 'error');
         }
+        
+        showToast('Preparazione e download in corso...', 'info', 4000);
+        const { wb, fileNameBase, pdfBlob } = await generateFiles();
+        
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        const aPdf = document.createElement('a');
+        aPdf.href = pdfUrl;
+        aPdf.download = `${fileNameBase}.pdf`;
+        document.body.appendChild(aPdf);
+        aPdf.click();
+        document.body.removeChild(aPdf);
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
 
-        showToast('Tentativo di apertura app di posta...', 'info');
+        setTimeout(() => {
+            XLSX.writeFile(wb, `${fileNameBase}.xlsx`);
+        }, 700);
 
-        const employeeName = allInputs.employeeName.value.trim() || 'Operatore';
-        const reportDate = new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT');
-        
-        const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
-        const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file si trovano nella cartella Download).\n\nBuona giornata.`;
-        
-        // <--- CAMBIA QUI L'EMAIL (NO, l'email corretta è quella che hai fornito tu)
-        const targetEmail = 'cominellis57@gmail.com';
-        const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        
-        // Questo è il metodo più diretto possibile.
-        window.location.href = mailtoLink;
+        setTimeout(() => {
+            const reportDate = new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT');
+            const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
+            const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file PDF ed Excel sono stati salvati nella cartella Download).\n\nBuona giornata.`;
+            
+            // Ecco la riga corretta con il commento!
+            const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
+            
+            const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+        }, 1500);
     });
 
     let deferredPrompt;
