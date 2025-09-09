@@ -288,23 +288,59 @@ document.addEventListener('DOMContentLoaded', () => {
         if (materials.length === 0) { addMaterialRow(); }
         else { materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc)); }
     };
+
+    // ==============================================================================
+    // == NUOVA FUNZIONE PER GESTIRE E COMPRIMERE LE FOTO ==
+    // Questa è la modifica principale che risolve il problema della memoria piena.
+    // ==============================================================================
     const handlePhotoFiles = (files) => {
         if (!files || files.length === 0) return;
-        showToast('Caricamento foto...', 'info');
-        let processedImages = 0;
-        for (const file of files) {
+        showToast('Caricamento e compressione foto...', 'info');
+        
+        const MAX_WIDTH = 1024; // Larghezza massima in pixel
+        const QUALITY = 0.8;    // Qualità del JPEG (da 0 a 1)
+
+        Array.from(files).forEach(file => {
             const reader = new FileReader();
             reader.onload = (e) => {
-                const photoId = Date.now() + '-' + file.name;
-                currentPhotos.push({ id: photoId, file: file, dataUrl: e.target.result });
-                processedImages++;
-                if (processedImages === files.length) {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let { width, height } = img;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_WIDTH) {
+                            width *= MAX_WIDTH / height;
+                            height = MAX_WIDTH;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Ottieni il dataUrl compresso
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', QUALITY);
+
+                    const photoId = Date.now() + '-' + file.name;
+                    currentPhotos.push({ 
+                        id: photoId, 
+                        dataUrl: compressedDataUrl // Salva la versione compressa
+                    });
+                    
                     renderPhotoPreviews();
-                }
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
-        }
+        });
     };
+
     photoInputCamera.addEventListener('change', (event) => { handlePhotoFiles(event.target.files); event.target.value = ''; });
     photoInputGallery.addEventListener('change', (event) => { handlePhotoFiles(event.target.files); event.target.value = ''; });
     const renderPhotoPreviews = () => {
@@ -428,11 +464,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
         if (totalMinutes <= 0) return showToast('Inserire almeno un intervallo di ore valido.', 'error');
         
-        // ==============================================================================
-        // == MODIFICA CHIRURGICA: Qui sta la correzione principale. ==
-        // Salviamo solo i dati delle foto che possono essere memorizzati (id e dataUrl),
-        // escludendo l'oggetto "file" che causava l'errore di salvataggio.
-        // ==============================================================================
         const photosToSave = currentPhotos.map(p => ({ id: p.id, dataUrl: p.dataUrl }));
         
         const intervention = {
@@ -442,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
             startPM: allInputs.startPM.value, endPM: allInputs.endPM.value,
             totalHours: formatMinutes(totalMinutes), totalMinutes: totalMinutes,
             workDone: allInputs.workDone.value, materials: getMaterialsData(), notes: allInputs.notes.value,
-            photos: photosToSave, // Usa l'array di foto corretto per il salvataggio
+            photos: photosToSave,
             bollaRef: allInputs.bollaRef.value, bollaDate: allInputs.bollaDate.value
         };
         const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
@@ -473,8 +504,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 allInputs.workDone.value = interv.workDone; setMaterialsData(interv.materials);
                 allInputs.notes.value = interv.notes;
                 allInputs.bollaRef.value = interv.bollaRef; allInputs.bollaDate.value = interv.bollaDate;
-                // Quando si modifica, currentPhotos viene ripopolato con i dati salvati.
-                // Il file originale non è necessario, solo l'anteprima (dataUrl).
                 currentPhotos = interv.photos ? [...interv.photos] : [];
                 renderPhotoPreviews();
                 updateTotals();
@@ -501,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) {
              try { 
                 dailyInterventions = JSON.parse(data); 
-                if (!Array.isArray(dailyInterventions)) { // Controllo di sicurezza
+                if (!Array.isArray(dailyInterventions)) {
                     dailyInterventions = [];
                 }
              } catch(e) { 
@@ -727,9 +756,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sequenza di avvio ---
     allInputs.date.value = new Date().toISOString().slice(0, 10);
-    loadFromLocalStorage(); // 1. Carica i dati salvati
-    renderInterventions();  // 2. Mostra a schermo i dati caricati (e salva, per consistenza)
-    addMaterialRow();       // 3. Aggiungi la prima riga vuota per i materiali
+    loadFromLocalStorage();
+    renderInterventions();
+    addMaterialRow();
 });
 </script>
 </body>
