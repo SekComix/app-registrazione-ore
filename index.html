@@ -629,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const reportDate = dailyInterventions.length > 0 ? new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT') : new Date().toLocaleDateString('it-IT');
         const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
         const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file sono stati salvati nella cartella Download).\n\nBuona giornata.`;
-        const targetEmail = 'tua-email@esempio.com'; // <--- CAMBIA QUI L'EMAIL
+        const targetEmail = 'cominellis57@gmail.com.com'; // <--- CAMBIA QUI L'EMAIL
         const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         window.location.href = mailtoLink;
     });
