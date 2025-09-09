@@ -122,13 +122,11 @@
             <div id="materials-container"></div>
             <button id="add-material-btn" class="btn-secondary">+</button>
         </div>
-       
         <h4 class="section-title">Riferimenti Bolla (Opzionale)</h4>
         <div class="bolla-section">
              <div class="form-group"><label for="bolla-ref">Rif. Bolla</label><input type="text" id="bolla-ref" placeholder="Numero o riferimento"></div>
              <div class="form-group"><label for="bolla-date">Data Bolla</label><input type="date" id="bolla-date"></div>
         </div>
-       
         <div class="form-group">
             <h4 class="section-title">Foto Lavori (Opzionale)</h4>
             <div class="action-buttons-container">
@@ -165,7 +163,6 @@
         <button id="close-modal-btn" class="btn-primary">OK, ho capito</button>
     </div>
 </div>
-
 <div class="modal-overlay" id="save-modal">
     <div class="modal-content">
         <h3>Salva Report</h3>
@@ -215,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let dailyInterventions = [];
     let currentPhotos = [];
     const unitsOfMeasure = ["", "PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
-   
+    
     let generatedPdfBlob = null;
     let generatedWb = null;
     let generatedFileNameBase = '';
@@ -340,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalMinutesSummary += interv.totalMinutes;
                 const item = document.createElement('div');
                 item.className = 'intervention-item';
-               
+                
                 let timeString = '';
                 if (interv.startAM && interv.endAM) { timeString += `<b>Mattino:</b> ${interv.startAM}-${interv.endAM}`; }
                 if (interv.startPM && interv.endPM) {
@@ -348,10 +345,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     timeString += `<b>Pomeriggio:</b> ${interv.startPM}-${interv.endPM}`;
                 }
                 if (timeString === '') timeString = 'N/D';
-               
+                
                 const formattedBollaDate = interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : 'N/D';
                 const formattedDate = new Date(interv.date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-               
+                
                 item.innerHTML = `
                     <div class="summary-view">
                         <div class="info">
@@ -405,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const { startAM, endAM, startPM, endPM, date } = allInputs;
         if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) { startAM.classList.add('error'); endAM.classList.add('error'); return showToast("Orario mattino incompleto.", 'error'); }
         if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) { startPM.classList.add('error'); endPM.classList.add('error'); return showToast("Orario pomeriggio incompleto.", 'error'); }
-       
+        
         const newIntervals = [];
         if (startAM.value && endAM.value) newIntervals.push({start: startAM.value, end: endAM.value});
         if (startPM.value && endPM.value) newIntervals.push({start: startPM.value, end: endPM.value});
@@ -488,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
              try { dailyInterventions = JSON.parse(data); } catch(e) { dailyInterventions = []; }
         }
     };
-   
+    
     const generateFiles = async () => {
         const employeeName = allInputs.employeeName.value.trim();
         const now = new Date();
@@ -555,6 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const excelData = [];
         let lastClient = null;
         const sortedInterventions = [...dailyInterventions].sort((a,b) => `${a.date}-${a.client}`.localeCompare(`${b.date}-${b.client}`));
+        
         sortedInterventions.forEach(i => {
             if (lastClient !== null && i.client !== lastClient) {
                 excelData.push({});
@@ -628,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return showToast('Inserisci il tuo nome per inviare.', 'error');
         }
         showToast('Apro l\'app di posta...', 'info');
-        const reportDate = new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT');
+        const reportDate = dailyInterventions.length > 0 ? new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT') : new Date().toLocaleDateString('it-IT');
         const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
         const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file sono stati salvati nella cartella Download).\n\nBuona giornata.`;
         const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
