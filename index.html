@@ -395,7 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) { startAM.classList.add('error'); endAM.classList.add('error'); return showToast("Orario mattino incompleto.", 'error'); }
         if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) { startPM.classList.add('error'); endPM.classList.add('error'); return showToast("Orario pomeriggio incompleto.", 'error'); }
         
-        // Logica di controllo sovrapposizione orari RIPRISTINATA
         const newIntervals = [];
         if (startAM.value && endAM.value) newIntervals.push({start: startAM.value, end: endAM.value});
         if (startPM.value && endPM.value) newIntervals.push({start: startPM.value, end: endPM.value});
@@ -477,7 +476,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // Funzione generateFiles RIPORTATA A UNA VERSIONE STABILE E FUNZIONANTE
     const generateFiles = async () => {
         const employeeName = allInputs.employeeName.value.trim();
         const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
@@ -485,10 +483,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
         const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}_${timeString}`;
         
-        // Logica PDF
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-        // ... (tutta la logica di creazione del PDF che funzionava) ...
         let yPos = 40;
         const pageHeight = doc.internal.pageSize.height;
         const margin = 40;
@@ -503,13 +499,46 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         addHeader(reportDate);
         for (const [index, interv] of dailyInterventions.entries()) {
-            // ... (la logica interna al PDF rimane la stessa)
+            const checkPageBreak = (space) => { if (yPos + space > pageHeight - margin) { doc.addPage(); yPos = margin; addHeader(interv.date); } };
+            checkPageBreak(120);
+            doc.setFontSize(14); doc.setFont(undefined, 'bold');
+            doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos); yPos += 15;
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text(`Indirizzo: ${interv.address || 'N/D'}`, margin, yPos); yPos += 20;
+            let timeString = (interv.startAM && interv.endAM ? `Mattino: ${interv.startAM}-${interv.endAM}` : '') + ((interv.startAM && interv.endAM && interv.startPM && interv.endPM) ? ' | ' : '') + (interv.startPM && interv.endPM ? `Pomeriggio: ${interv.startPM}-${interv.endPM}` : '');
+            doc.text(`Orari: ${timeString || 'N/D'}`, margin, yPos);
+            doc.text(`Ore Totali: ${interv.totalHours}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 20;
+            const addSection = (title, content) => {
+                if (content && content.trim() !== '') {
+                    doc.setFont(undefined, 'bold'); doc.text(title, margin, yPos); yPos += 12;
+                    doc.setFont(undefined, 'normal');
+                    const lines = doc.splitTextToSize(content, doc.internal.pageSize.width - margin * 2);
+                    checkPageBreak(lines.length * 12 + 20);
+                    doc.text(lines, margin, yPos); yPos += (lines.length * 12) + 10;
+                }
+            };
+            addSection('Lavoro Svolto:', interv.workDone);
+            const materialsText = (interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('\n') : '';
+            addSection('Materiali Utilizzati:', materialsText);
+            addSection('Note Aggiuntive:', interv.notes);
+            if (interv.photos && interv.photos.length > 0) {
+                checkPageBreak(40);
+                doc.setFont(undefined, 'bold'); doc.text('Foto Lavori:', margin, yPos); yPos += 15;
+                const photoSize = 120; let xPos = margin;
+                for (const photo of interv.photos) {
+                    if (xPos + photoSize > doc.internal.pageSize.width - margin) { xPos = margin; yPos += photoSize + 10; }
+                    checkPageBreak(photoSize + 20);
+                    try { doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, photoSize, photoSize); } catch (e) { console.error("Errore immagine PDF:", e); doc.text('[Immagine non supportata]', xPos, yPos + 20); }
+                    xPos += photoSize + 10;
+                }
+                yPos += photoSize + 20;
+            }
+            if (index < dailyInterventions.length - 1) { doc.setLineDashPattern([5, 5], 0); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); doc.setLineDashPattern([], 0); yPos += 20; }
         }
         const pdfBlob = doc.output('blob');
         
-        // Logica Excel STABILE
         const excelData = dailyInterventions.flatMap(i => {
-            // ... (logica di creazione excel che funzionava) ...
             return i.materials.length > 0 ? i.materials.map(m => ({ Dipendente: employeeName, Data: i.date, Cliente: i.client, Indirizzo: i.address, Ore_Totali_Intervento: i.totalHours, Lavoro_Svolto: i.workDone, Note: i.notes, Qta_Materiale: m.qty, UM_Materiale: m.unit, Desc_Materiale: m.desc })) : [{ Dipendente: employeeName, Data: i.date, Cliente: i.client, Indirizzo: i.address, Ore_Totali_Intervento: i.totalHours, Lavoro_Svolto: i.workDone, Note: i.notes, Qta_Materiale: '', UM_Materiale: '', Desc_Materiale: '' }];
         });
         const ws = XLSX.utils.json_to_sheet(excelData);
