@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Report Interventi</title>
-    
+   
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#007bff">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icon.svg">
-    
+   
     <style>
         :root {
             --primary-color: #007bff;
@@ -122,13 +122,11 @@
             <div id="materials-container"></div>
             <button id="add-material-btn" class="btn-secondary">+</button>
         </div>
-        
         <h4 class="section-title">Riferimenti Bolla (Opzionale)</h4>
         <div class="bolla-section">
              <div class="form-group"><label for="bolla-ref">Rif. Bolla</label><input type="text" id="bolla-ref" placeholder="Numero o riferimento"></div>
              <div class="form-group"><label for="bolla-date">Data Bolla</label><input type="date" id="bolla-date"></div>
         </div>
-        
         <div class="form-group">
             <h4 class="section-title">Foto Lavori (Opzionale)</h4>
             <div class="action-buttons-container">
@@ -165,7 +163,6 @@
         <button id="close-modal-btn" class="btn-primary">OK, ho capito</button>
     </div>
 </div>
-
 <div class="modal-overlay" id="save-modal">
     <div class="modal-content">
         <h3>Salva Report</h3>
@@ -488,13 +485,13 @@ document.addEventListener('DOMContentLoaded', () => {
              try { dailyInterventions = JSON.parse(data); } catch(e) { dailyInterventions = []; }
         }
     };
-    
+   
     const generateFiles = async () => {
         const employeeName = allInputs.employeeName.value.trim();
         const now = new Date();
         const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
         const fileNameBase = `Report_${now.toISOString().slice(0,10)}_${employeeName.replace(/ /g, '_')}_${timeString}`;
-        
+       
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ unit: 'pt', format: 'a4' });
         let yPos = 40;
@@ -551,10 +548,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (index < dailyInterventions.length - 1) { doc.setLineDashPattern([5, 5], 0); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); doc.setLineDashPattern([], 0); yPos += 20; }
         }
         const pdfBlob = doc.output('blob');
-        
+       
         const excelData = [];
         let lastClient = null;
         const sortedInterventions = [...dailyInterventions].sort((a,b) => `${a.date}-${a.client}`.localeCompare(`${b.date}-${b.client}`));
+        
         sortedInterventions.forEach(i => {
             if (lastClient !== null && i.client !== lastClient) {
                 excelData.push({});
@@ -602,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.utils.book_append_sheet(wb, ws, "Interventi");
         return { pdfBlob, wb, fileNameBase };
     };
-    
+   
     saveReportBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da salvare.', 'error');
         if (!allInputs.employeeName.value.trim()) {
@@ -610,12 +608,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return showToast('Inserisci il tuo nome per salvare il report.', 'error');
         }
         showToast('Preparazione file in corso...', 'info');
-        
+       
         const { wb, fileNameBase, pdfBlob } = await generateFiles();
         generatedPdfBlob = pdfBlob;
         generatedWb = wb;
         generatedFileNameBase = fileNameBase;
-        
+       
         showToast('File pronti per il download!', 'success');
         saveModal.style.display = 'flex';
     });
@@ -635,7 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         window.location.href = mailtoLink;
     });
-    
+   
     clearAllBtn.addEventListener('click', () => {
         if (dailyInterventions.length === 0) return;
         const confirmationText = "ATTENZIONE! Stai per eliminare TUTTI gli interventi salvati. Assicurati di aver prima scaricato e inviato il report via email. L'operazione non è reversibile. Confermi?";
@@ -677,7 +675,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const installButton = document.getElementById('install-button');
     const installModal = document.getElementById('install-instructions-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
-    
+   
     if (window.matchMedia('(display-mode: standalone)').matches === false) {
         installButton.style.display = 'block';
     }
