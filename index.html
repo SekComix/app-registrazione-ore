@@ -12,7 +12,7 @@
     <link rel="icon" href="icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icon.svg">
    
-        <style>
+            <style>
         :root {
             /* === MODIFICA COLORI: Da Blu a Verde Squadra === */
             --primary-color: #28a745; /* Verde Successo */
@@ -86,6 +86,49 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1001; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 25px; border-radius: 12px; max-width: 90%; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-content h3 { margin-top: 0; } .modal-content p { margin-bottom: 20px; line-height: 1.5; }
+        
+        /* NUOVI STILI PER LA SEZIONE SQUADRA */
+        .team-member-card {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            animation: fadeIn 0.5s;
+        }
+        .team-member-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .team-member-header .form-group {
+            flex-grow: 1;
+            margin-bottom: 0;
+        }
+        .remove-member-btn {
+            width: 40px !important;
+            height: 40px;
+            padding: 0 !important;
+            font-size: 20px !important;
+            margin-left: 10px;
+        }
+        .time-override-toggle {
+            font-size: 14px;
+            text-align: right;
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
+        .time-override-toggle button {
+            all: unset; /* Resetta lo stile del bottone */
+            cursor: pointer;
+            color: var(--primary-color);
+            text-decoration: underline;
+            font-weight: bold;
+        }
+        .hidden-times {
+            display: none;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -97,12 +140,23 @@
         <img src="icon.svg" alt="Logo AM Impianti Elettrici">
         <h1>AM Impianti Elettrici di Maselli Andrea</h1>
     </div>
-    <div class="card" id="form-card">
-        <h2 id="form-title">Nuovo Intervento</h2>
-        <input type="hidden" id="intervention-id">
-        <div class="form-group"><label for="employee-name">Il Tuo Nome</label><input type="text" id="employee-name" placeholder="Es. Mario Rossi"></div>
-        <div class="form-group"><label for="date">Data</label><input type="date" id="date"></div>
-        <div class="form-group"><label for="client">Cliente</label><input type="text" id="client" placeholder="Nome del cliente"></div>
+   <div class="card" id="form-card">
+    <!-- MODIFICA: Titolo dell'App -->
+    <h2 id="form-title">Nuovo Intervento Squadra</h2> 
+    <input type="hidden" id="intervention-id">
+    
+    <!-- MODIFICA: Campi Cliente e Data spostati sopra per chiarezza -->
+    <div class="form-group"><label for="date">Data</label><input type="date" id="date"></div>
+    <div class="form-group"><label for="client">Cliente</label><input type="text" id="client" placeholder="Nome del cliente"></div>
+    <div class="form-group"><label for="address">Indirizzo</label><input type="text" id="address" placeholder="Indirizzo dell'intervento"></div>
+
+    <!-- NUOVA SEZIONE SQUADRA -->
+    <h4 class="section-title">Membri Squadra e Orari</h4>
+    <div id="team-members-container">
+        <!-- Qui verranno aggiunti dinamicamente i membri della squadra -->
+    </div>
+    <button id="add-member-btn" class="btn-secondary" style="width: auto; padding: 10px 15px; font-size: 14px; margin-top: 10px;">+ Aggiungi Membro</button>
+    <!-- FINE NUOVA SEZIONE -->
         <div class="form-group"><label for="address">Indirizzo</label><input type="text" id="address" placeholder="Indirizzo dell'intervento"></div>
         <h4>Mattino</h4>
         <div class="time-section">
@@ -182,16 +236,18 @@ if ('serviceWorker' in navigator) {
   });
 }
 document.addEventListener('DOMContentLoaded', () => {
+    // Riferimenti agli elementi HTML
     const allInputs = {
-        date: document.getElementById('date'), client: document.getElementById('client'),
+        date: document.getElementById('date'),
+        client: document.getElementById('client'),
         address: document.getElementById('address'),
-        startAM: document.getElementById('start-am'), endAM: document.getElementById('end-am'),
-        startPM: document.getElementById('start-pm'), endPM: document.getElementById('end-pm'),
-        workDone: document.getElementById('work-done'), notes: document.getElementById('notes'),
-        employeeName: document.getElementById('employee-name'),
+        workDone: document.getElementById('work-done'),
+        notes: document.getElementById('notes'),
         bollaRef: document.getElementById('bolla-ref'),
         bollaDate: document.getElementById('bolla-date')
     };
+    const teamContainer = document.getElementById('team-members-container');
+    const addMemberBtn = document.getElementById('add-member-btn');
     const materialsContainer = document.getElementById('materials-container');
     const addMaterialBtn = document.getElementById('add-material-btn');
     const photoInputCamera = document.getElementById('photo-input-camera');
@@ -205,23 +261,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const formTitle = document.getElementById('form-title');
     const interventionIdInput = document.getElementById('intervention-id');
     const toast = document.getElementById('toast');
-    const subtotalAMSpan = document.getElementById('subtotal-am');
-    const subtotalPMSpan = document.getElementById('subtotal-pm');
     const totalHoursSpan = document.getElementById('total-hours');
     const summaryTotalSpan = document.getElementById('summary-total');
+
+    // Variabili di stato
     let dailyInterventions = [];
     let currentPhotos = [];
     const unitsOfMeasure = ["", "PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
    
-    let generatedPdfBlob = null;
-    let generatedWb = null;
-    let generatedFileNameBase = '';
-
+    // Variabili per i modali e i file
     const saveModal = document.getElementById('save-modal');
     const modalSavePdfBtn = document.getElementById('modal-save-pdf');
     const modalSaveExcelBtn = document.getElementById('modal-save-excel');
     const modalCloseSaveBtn = document.getElementById('modal-close-save');
-
+    let generatedPdfBlob = null;
+    let generatedWb = null;
+    let generatedFileNameBase = '';
+    
+    // ==============================================================================
+    // FUNZIONI DI CALCOLO E FORMATTAZIONE ORARI
+    // ==============================================================================
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
         let s = new Date(`1970-01-01T${start}:00`), e = new Date(`1970-01-01T${end}:00`);
@@ -229,32 +288,167 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e < s) e.setDate(e.getDate() + 1);
         return (e - s) / 60000;
     };
+
     const formatMinutes = (m) => (m <= 0) ? '0h 0min' : `${Math.floor(m / 60)}h ${Math.round(m % 60)}min`;
-    const updateTotals = () => {
-        const minutesAM = calculateMinutes(allInputs.startAM.value, allInputs.endAM.value);
-        const minutesPM = calculateMinutes(allInputs.startPM.value, allInputs.endPM.value);
-        subtotalAMSpan.textContent = formatMinutes(minutesAM);
-        subtotalPMSpan.textContent = formatMinutes(minutesPM);
-        totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
+
+    // ==============================================================================
+    // GESTIONE SQUADRA (LOGICA PRINCIPALE NUOVA)
+    // ==============================================================================
+    const addMemberRow = (member = {}) => {
+        const memberId = member.id || `member-${Date.now()}`;
+        const isFirstMember = teamContainer.children.length === 0;
+
+        const memberCard = document.createElement('div');
+        memberCard.className = 'team-member-card';
+        memberCard.dataset.id = memberId;
+
+        memberCard.innerHTML = `
+            <div class="team-member-header">
+                <div class="form-group">
+                    <label for="name-${memberId}">${isFirstMember ? 'Caposquadra' : 'Membro Squadra'}</label>
+                    <input type="text" id="name-${memberId}" class="employee-name" placeholder="Nome Cognome" value="${member.name || ''}">
+                </div>
+                ${!isFirstMember ? '<button class="btn-danger remove-member-btn">-</button>' : ''}
+            </div>
+
+            <!-- Contenitore Orari che può essere nascosto/mostrato -->
+            <div class="member-times ${isFirstMember || member.timesOverridden ? '' : 'hidden-times'}">
+                <h4>Mattino</h4>
+                <div class="time-section">
+                    <div><label for="start-am-${memberId}">Ora Inizio</label><div class="time-input-wrapper"><input type="time" id="start-am-${memberId}" placeholder=" " value="${member.startAM || ''}"><button class="clear-time-btn" data-target="start-am-${memberId}">&times;</button></div></div>
+                    <div><label for="end-am-${memberId}">Ora Fine</label><div class="time-input-wrapper"><input type="time" id="end-am-${memberId}" placeholder=" " value="${member.endAM || ''}"><button class="clear-time-btn" data-target="end-am-${memberId}">&times;</button></div></div>
+                    <div class="subtotal">Subtotale: <span class="subtotal-am">0h 0min</span></div>
+                </div>
+                <h4>Pomeriggio</h4>
+                <div class="time-section">
+                    <div><label for="start-pm-${memberId}">Ora Inizio</label><div class="time-input-wrapper"><input type="time" id="start-pm-${memberId}" placeholder=" " value="${member.startPM || ''}"><button class="clear-time-btn" data-target="start-pm-${memberId}">&times;</button></div></div>
+                    <div><label for="end-pm-${memberId}">Ora Fine</label><div class="time-input-wrapper"><input type="time" id="end-pm-${memberId}" placeholder=" " value="${member.endPM || ''}"><button class="clear-time-btn" data-target="end-pm-${memberId}">&times;</button></div></div>
+                    <div class="subtotal">Subtotale: <span class="subtotal-pm">0h 0min</span></div>
+                </div>
+            </div>
+            
+            <!-- Bottone per mostrare/nascondere orari (solo per membri aggiuntivi) -->
+            ${!isFirstMember ? `
+                <div class="time-override-toggle">
+                    <button class="toggle-times-btn">${member.timesOverridden ? 'Usa orario caposquadra' : 'Modifica orario'}</button>
+                </div>
+            ` : ''}
+        `;
+        teamContainer.appendChild(memberCard);
+        updateAllTotals();
     };
-    Object.values(allInputs).forEach(el => {
-        if (!el) return;
-        const isTextField = el.type === 'text' || el.tagName === 'TEXTAREA' || el.type === 'date';
-        if (isTextField) { el.addEventListener('input', () => el.classList.remove('error')); }
-        else if (el.type === 'time') { el.addEventListener('input', () => { el.classList.remove('error'); updateTotals(); }); }
+
+    teamContainer.addEventListener('input', (e) => {
+        if (e.target.matches('input[type="time"], .employee-name')) {
+            // Se a cambiare sono gli orari del primo membro (caposquadra), aggiorna gli altri
+            const firstMemberCard = teamContainer.firstElementChild;
+            if (e.target.closest('.team-member-card') === firstMemberCard) {
+                updateDefaultTimes();
+            }
+            updateAllTotals();
+        }
     });
-    document.querySelectorAll('.clear-time-btn').forEach(button => {
-        button.addEventListener('click', (event) => {
-            event.preventDefault();
-            document.getElementById(event.target.dataset.target).value = '';
-            updateTotals();
+
+    teamContainer.addEventListener('click', (e) => {
+        // Rimuovi membro
+        if (e.target.classList.contains('remove-member-btn')) {
+            e.target.closest('.team-member-card').remove();
+            updateAllTotals();
+        }
+        // Mostra/Nascondi orari personalizzati
+        if (e.target.classList.contains('toggle-times-btn')) {
+            const memberCard = e.target.closest('.team-member-card');
+            const timesContainer = memberCard.querySelector('.member-times');
+            const isHidden = timesContainer.classList.toggle('hidden-times');
+            e.target.textContent = isHidden ? 'Modifica orario' : 'Usa orario caposquadra';
+            
+            if (!isHidden) { // Se ho appena mostrato gli orari, li pre-compilo
+                updateDefaultTimes();
+            }
+            updateAllTotals();
+        }
+        // Svuota campo orario
+        if (e.target.classList.contains('clear-time-btn')) {
+            document.getElementById(e.target.dataset.target).value = '';
+            updateAllTotals();
+        }
+    });
+
+    addMemberBtn.addEventListener('click', () => addMemberRow());
+
+    // Funzione che aggiorna gli orari dei membri "follower" con quelli del caposquadra
+    const updateDefaultTimes = () => {
+        const members = Array.from(teamContainer.children);
+        if (members.length < 2) return;
+
+        const firstMember = members[0];
+        const leaderTimes = {
+            startAM: firstMember.querySelector('[id^="start-am-"]').value,
+            endAM: firstMember.querySelector('[id^="end-am-"]').value,
+            startPM: firstMember.querySelector('[id^="start-pm-"]').value,
+            endPM: firstMember.querySelector('[id^="end-pm-"]').value,
+        };
+
+        members.slice(1).forEach(memberCard => {
+            const timesContainer = memberCard.querySelector('.member-times');
+            if (timesContainer.classList.contains('hidden-times')) {
+                // Se gli orari sono nascosti, non faccio nulla, erediteranno i valori al momento del calcolo
+            } else {
+                // Se sono visibili, li aggiorno
+                memberCard.querySelector('[id^="start-am-"]').value = leaderTimes.startAM;
+                memberCard.querySelector('[id^="end-am-"]').value = leaderTimes.endAM;
+                memberCard.querySelector('[id^="start-pm-"]').value = leaderTimes.startPM;
+                memberCard.querySelector('[id^="end-pm-"]').value = leaderTimes.endPM;
+            }
         });
-    });
-    const showToast = (message, type = 'success', duration = 3000) => {
-        toast.textContent = message;
-        toast.className = `show ${type}`;
-        setTimeout(() => { toast.className = ''; }, duration);
     };
+    
+    // Funzione che calcola e aggiorna TUTTI i totali (per membro e globali)
+    const updateAllTotals = () => {
+        let totalMinutesIntervention = 0;
+        const members = Array.from(teamContainer.children);
+        if (members.length === 0) {
+            totalHoursSpan.textContent = `Totale Ore: 0h 0min`;
+            return;
+        }
+
+        const leaderTimes = {
+            startAM: members[0].querySelector('[id^="start-am-"]').value,
+            endAM: members[0].querySelector('[id^="end-am-"]').value,
+            startPM: members[0].querySelector('[id^="start-pm-"]').value,
+            endPM: members[0].querySelector('[id^="end-pm-"]').value,
+        };
+
+        members.forEach(memberCard => {
+            let memberStartAM, memberEndAM, memberStartPM, memberEndPM;
+            const timesContainer = memberCard.querySelector('.member-times');
+
+            if (timesContainer.classList.contains('hidden-times')) {
+                // Eredita orari dal caposquadra
+                ({ startAM: memberStartAM, endAM: memberEndAM, startPM: memberStartPM, endPM: memberEndPM } = leaderTimes);
+            } else {
+                // Usa i propri orari
+                memberStartAM = memberCard.querySelector('[id^="start-am-"]').value;
+                memberEndAM = memberCard.querySelector('[id^="end-am-"]').value;
+                memberStartPM = memberCard.querySelector('[id^="start-pm-"]').value;
+                memberEndPM = memberCard.querySelector('[id^="end-pm-"]').value;
+            }
+
+            const minutesAM = calculateMinutes(memberStartAM, memberEndAM);
+            const minutesPM = calculateMinutes(memberStartPM, memberEndPM);
+            
+            memberCard.querySelector('.subtotal-am').textContent = formatMinutes(minutesAM);
+            memberCard.querySelector('.subtotal-pm').textContent = formatMinutes(minutesPM);
+
+            totalMinutesIntervention += (minutesAM + minutesPM);
+        });
+
+        totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(totalMinutesIntervention)}`;
+    };
+
+    // ==============================================================================
+    // GESTIONE MATERIALI, FOTO, TOAST (invariate)
+    // ==============================================================================
     const addMaterialRow = (qty = '', unit = '', desc = '') => {
         const row = document.createElement('div');
         row.className = 'material-row';
@@ -275,14 +469,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     const getMaterialsData = () => {
-        const materials = [];
-        document.querySelectorAll('#materials-container .material-row').forEach(row => {
-            const qty = row.querySelector('.material-qty').value;
-            const unit = row.querySelector('.material-unit').value;
-            const desc = row.querySelector('.material-desc').value.trim();
-            if (qty && unit && desc) { materials.push({ qty, unit, desc }); }
-        });
-        return materials;
+        return Array.from(document.querySelectorAll('#materials-container .material-row')).map(row => ({
+            qty: row.querySelector('.material-qty').value,
+            unit: row.querySelector('.material-unit').value,
+            desc: row.querySelector('.material-desc').value.trim()
+        })).filter(m => m.qty && m.unit && m.desc);
     };
     const setMaterialsData = (materials = []) => {
         materialsContainer.innerHTML = '';
@@ -290,17 +481,10 @@ document.addEventListener('DOMContentLoaded', () => {
         else { materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc)); }
     };
 
-    // ==============================================================================
-    // == NUOVA FUNZIONE PER GESTIRE E COMPRIMERE LE FOTO ==
-    // Questa è la modifica principale che risolve il problema della memoria piena.
-    // ==============================================================================
     const handlePhotoFiles = (files) => {
         if (!files || files.length === 0) return;
         showToast('Caricamento e compressione foto...', 'info');
-       
-        const MAX_WIDTH = 1024; // Larghezza massima in pixel
-        const QUALITY = 0.8;    // Qualità del JPEG (da 0 a 1)
-
+        const MAX_WIDTH = 1024, QUALITY = 0.8;
         Array.from(files).forEach(file => {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -308,32 +492,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     let { width, height } = img;
-
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_WIDTH) {
-                            width *= MAX_WIDTH / height;
-                            height = MAX_WIDTH;
-                        }
-                    }
+                    if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } }
+                    else { if (height > MAX_WIDTH) { width *= MAX_WIDTH / height; height = MAX_WIDTH; } }
                     canvas.width = width;
                     canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    // Ottieni il dataUrl compresso
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                     const compressedDataUrl = canvas.toDataURL('image/jpeg', QUALITY);
-
-                    const photoId = Date.now() + '-' + file.name;
-                    currentPhotos.push({
-                        id: photoId,
-                        dataUrl: compressedDataUrl // Salva la versione compressa
-                    });
-                   
+                    currentPhotos.push({ id: Date.now() + '-' + file.name, dataUrl: compressedDataUrl });
                     renderPhotoPreviews();
                 };
                 img.src = e.target.result;
@@ -341,7 +506,6 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsDataURL(file);
         });
     };
-
     photoInputCamera.addEventListener('change', (event) => { handlePhotoFiles(event.target.files); event.target.value = ''; });
     photoInputGallery.addEventListener('change', (event) => { handlePhotoFiles(event.target.files); event.target.value = ''; });
     const renderPhotoPreviews = () => {
@@ -360,10 +524,136 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPhotoPreviews();
         }
     });
+
+    const showToast = (message, type = 'success', duration = 3000) => {
+        toast.textContent = message;
+        toast.className = `show ${type}`;
+        setTimeout(() => { toast.className = ''; }, duration);
+    };
+
+    // ==============================================================================
+    // LOGICA PRINCIPALE (AGGIUNGI, MODIFICA, ELIMINA INTERVENTO)
+    // ==============================================================================
+    addBtn.addEventListener('click', () => {
+        // Validazione campi generali
+        let isValid = true;
+        [allInputs.client, allInputs.workDone, allInputs.address].forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('error');
+                isValid = false;
+            } else {
+                field.classList.remove('error');
+            }
+        });
+
+        // Validazione membri squadra
+        const memberCards = Array.from(teamContainer.children);
+        if (memberCards.length === 0) {
+            showToast('Aggiungi almeno un membro alla squadra.', 'error');
+            return;
+        }
+
+        memberCards.forEach(card => {
+            const nameInput = card.querySelector('.employee-name');
+            if (!nameInput.value.trim()) {
+                nameInput.classList.add('error');
+                isValid = false;
+            } else {
+                nameInput.classList.remove('error');
+            }
+        });
+
+        if (!isValid) {
+            showToast('Compila tutti i campi evidenziati.', 'error');
+            return;
+        }
+
+        // Recupero dati squadra
+        const leaderTimes = {
+            startAM: memberCards[0].querySelector('[id^="start-am-"]').value,
+            endAM: memberCards[0].querySelector('[id^="end-am-"]').value,
+            startPM: memberCards[0].querySelector('[id^="start-pm-"]').value,
+            endPM: memberCards[0].querySelector('[id^="end-pm-"]').value,
+        };
+        
+        const teamData = memberCards.map(card => {
+            const timesContainer = card.querySelector('.member-times');
+            const useOverride = !timesContainer.classList.contains('hidden-times');
+            
+            const memberTimes = useOverride ? {
+                startAM: card.querySelector('[id^="start-am-"]').value,
+                endAM: card.querySelector('[id^="end-am-"]').value,
+                startPM: card.querySelector('[id^="start-pm-"]').value,
+                endPM: card.querySelector('[id^="end-pm-"]').value,
+            } : leaderTimes;
+
+            const totalMinutes = calculateMinutes(memberTimes.startAM, memberTimes.endAM) + calculateMinutes(memberTimes.startPM, memberTimes.endPM);
+
+            return {
+                id: card.dataset.id,
+                name: card.querySelector('.employee-name').value,
+                ...memberTimes,
+                timesOverridden: useOverride,
+                totalMinutes: totalMinutes,
+                totalHours: formatMinutes(totalMinutes)
+            };
+        });
+
+        const totalInterventionMinutes = teamData.reduce((sum, member) => sum + member.totalMinutes, 0);
+        if (totalInterventionMinutes <= 0) {
+            showToast('Inserire almeno un intervallo di ore valido.', 'error');
+            return;
+        }
+
+        const intervention = {
+            id: interventionIdInput.value ? Number(interventionIdInput.value) : Date.now(),
+            date: allInputs.date.value,
+            client: allInputs.client.value,
+            address: allInputs.address.value,
+            workDone: allInputs.workDone.value,
+            materials: getMaterialsData(),
+            notes: allInputs.notes.value,
+            photos: currentPhotos.map(p => ({ id: p.id, dataUrl: p.dataUrl })),
+            bollaRef: allInputs.bollaRef.value,
+            bollaDate: allInputs.bollaDate.value,
+            team: teamData, // Salva i dati della squadra
+            totalMinutes: totalInterventionMinutes
+        };
+        
+        const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
+        if (existingIndex > -1) {
+            dailyInterventions[existingIndex] = intervention;
+            showToast('Intervento modificato!');
+        } else {
+            dailyInterventions.push(intervention);
+            showToast('Intervento aggiunto!');
+        }
+        renderInterventions();
+        resetForm();
+    });
+
+    const resetForm = () => {
+        Object.values(allInputs).forEach(input => input.value = '');
+        allInputs.date.value = new Date().toISOString().slice(0, 10);
+        interventionIdInput.value = '';
+        teamContainer.innerHTML = '';
+        addMemberRow(); // Aggiunge il caposquadra
+        setMaterialsData([]);
+        currentPhotos = [];
+        renderPhotoPreviews();
+        formTitle.textContent = 'Nuovo Intervento Squadra';
+        addBtn.textContent = 'Aggiungi Rapporto';
+        updateAllTotals();
+    };
+    
+    // ==============================================================================
+    // RENDER, LOAD, SAVE (Aggiornate per la squadra)
+    // ==============================================================================
     const renderInterventions = () => {
         interventionsList.innerHTML = '';
         let totalMinutesSummary = 0;
         dailyInterventions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
         if (dailyInterventions.length === 0) {
             interventionsList.innerHTML = '<p>Nessun intervento aggiunto.</p>';
             clearAllBtn.style.display = 'none';
@@ -373,24 +663,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalMinutesSummary += interv.totalMinutes;
                 const item = document.createElement('div');
                 item.className = 'intervention-item';
-               
-                let timeString = '';
-                if (interv.startAM && interv.endAM) { timeString += `<b>Mattino:</b> ${interv.startAM}-${interv.endAM}`; }
-                if (interv.startPM && interv.endPM) {
-                    if (timeString !== '') timeString += '<br>';
-                    timeString += `<b>Pomeriggio:</b> ${interv.startPM}-${interv.endPM}`;
-                }
-                if (timeString === '') timeString = 'N/D';
-               
-                const formattedBollaDate = interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : 'N/D';
                 const formattedDate = new Date(interv.date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-               
+                const teamNames = interv.team.map(m => m.name).join(', ');
+                
+                // Crea il dettaglio HTML per ogni membro
+                const teamDetailsHtml = interv.team.map(member => {
+                    let timeString = '';
+                    if (member.startAM && member.endAM) timeString += `Mattino: ${member.startAM}-${member.endAM}`;
+                    if (member.startPM && member.endPM) timeString += `${timeString ? ' | ' : ''}Pomeriggio: ${member.startPM}-${member.endPM}`;
+                    return `<p style="margin: 2px 0;">- <b>${member.name}:</b> ${timeString || 'N/D'} (${member.totalHours})</p>`;
+                }).join('');
+
                 item.innerHTML = `
                     <div class="summary-view">
                         <div class="info">
                             <span class="client">${interv.client}</span>
                             <span class="details"><b>Data:</b> ${formattedDate}</span>
-                            <span class="details"><b>Ore:</b> ${interv.totalHours}</span>
+                            <span class="details"><b>Squadra:</b> ${teamNames}</span>
+                            <span class="details"><b>Ore Totali:</b> ${formatMinutes(interv.totalMinutes)}</span>
                         </div>
                         <div style="display: flex; align-items: center;">
                            <span class="expand-icon">&#9660;</span>
@@ -404,12 +694,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><b>Data Intervento:</b> ${formattedDate}</p>
                         <p><b>Cliente:</b> ${interv.client}</p>
                         <p><b>Indirizzo:</b> ${interv.address || 'N/D'}</p>
-                        <p><b>Orari:</b><br>${timeString}</p>
-                        <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
+                        <div><b>Orari Squadra:</b>${teamDetailsHtml}</div>
+                        <p style="margin-top: 10px;"><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
                         <p><b>Materiali Utilizzati:</b><br>${(interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') : 'Nessuno'}</p>
-                        <p><b>Rif. Bolla:</b> ${interv.bollaRef || 'N/D'} | <b>Data Bolla:</b> ${formattedBollaDate}</p>
                         <p><b>Note:</b><br>${interv.notes || 'N/D'}</p>
-                        <p><b>Foto:</b><br>${(interv.photos && interv.photos.length > 0) ? `${interv.photos.length} foto allegate` : 'Nessuna'}</p>
                     </div>
                 `;
                 interventionsList.appendChild(item);
@@ -418,71 +706,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
         saveToLocalStorage();
     };
-    const resetForm = () => {
-        Object.values(allInputs).forEach(input => { if (input && input.id !== 'date' && input.id !== 'employee-name') input.value = ''; });
-        allInputs.date.value = new Date().toISOString().slice(0, 10);
-        interventionIdInput.value = '';
-        setMaterialsData([]);
-        currentPhotos = [];
-        renderPhotoPreviews();
-        formTitle.textContent = 'Nuovo Intervento';
-        addBtn.textContent = 'Aggiungi Rapporto';
-        updateTotals();
-    };
-    addBtn.addEventListener('click', () => {
-        Object.values(allInputs).forEach(field => { if(field) field.classList.remove('error')});
-        const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone, allInputs.address];
-        let textIsValid = true;
-        requiredTextFields.forEach(field => { if (field && !field.value.trim()) { field.classList.add('error'); textIsValid = false; } });
-        if (!textIsValid) return showToast('Compila i campi evidenziati!', 'error');
-        const { startAM, endAM, startPM, endPM, date } = allInputs;
-        if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) { startAM.classList.add('error'); endAM.classList.add('error'); return showToast("Orario mattino incompleto.", 'error'); }
-        if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) { startPM.classList.add('error'); endPM.classList.add('error'); return showToast("Orario pomeriggio incompleto.", 'error'); }
-       
-        const newIntervals = [];
-        if (startAM.value && endAM.value) newIntervals.push({start: startAM.value, end: endAM.value});
-        if (startPM.value && endPM.value) newIntervals.push({start: startPM.value, end: endPM.value});
-        if (newIntervals.length > 1 && newIntervals[0].end > newIntervals[1].start) {
-            allInputs.endAM.classList.add('error'); allInputs.startPM.classList.add('error');
-            return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error');
-        }
-        let existingIntervals = dailyInterventions
-            .filter(i => i.id.toString() !== interventionIdInput.value && i.date === date.value)
-            .flatMap(i => {
-                const intervals = [];
-                if (i.startAM && i.endAM) intervals.push({start: i.startAM, end: i.endAM, client: i.client});
-                if (i.startPM && i.endPM) intervals.push({start: i.startPM, end: i.endPM, client: i.client});
-                return intervals;
-            });
-        for (const newInt of newIntervals) {
-            for (const oldInt of existingIntervals) {
-                if (newInt.start < oldInt.end && newInt.end > oldInt.start) {
-                    return showToast(`Orario ${newInt.start}-${newInt.end} si sovrappone con l'intervento per ${oldInt.client}.`, 'error', 6000);
-                }
-            }
-        }
 
-        const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
-        if (totalMinutes <= 0) return showToast('Inserire almeno un intervallo di ore valido.', 'error');
-       
-        const photosToSave = currentPhotos.map(p => ({ id: p.id, dataUrl: p.dataUrl }));
-       
-        const intervention = {
-            id: interventionIdInput.value ? Number(interventionIdInput.value) : Date.now(),
-            date: allInputs.date.value, client: allInputs.client.value, address: allInputs.address.value,
-            startAM: allInputs.startAM.value, endAM: allInputs.endAM.value,
-            startPM: allInputs.startPM.value, endPM: allInputs.endPM.value,
-            totalHours: formatMinutes(totalMinutes), totalMinutes: totalMinutes,
-            workDone: allInputs.workDone.value, materials: getMaterialsData(), notes: allInputs.notes.value,
-            photos: photosToSave,
-            bollaRef: allInputs.bollaRef.value, bollaDate: allInputs.bollaDate.value
-        };
-        const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
-        if (existingIndex > -1) { dailyInterventions[existingIndex] = intervention; showToast('Intervento modificato!'); }
-        else { dailyInterventions.push(intervention); showToast('Intervento aggiunto!'); }
-        renderInterventions();
-        resetForm();
-    });
     interventionsList.addEventListener('click', (e) => {
         const target = e.target;
         const action = target.dataset.action;
@@ -496,18 +720,22 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             const interv = dailyInterventions.find(i => i.id == id);
             if (interv) {
-                formTitle.textContent = 'Modifica Intervento';
+                formTitle.textContent = 'Modifica Intervento Squadra';
                 addBtn.textContent = 'Salva Modifiche';
                 interventionIdInput.value = interv.id;
-                allInputs.date.value = interv.date; allInputs.client.value = interv.client; allInputs.address.value = interv.address;
-                allInputs.startAM.value = interv.startAM; allInputs.endAM.value = interv.endAM;
-                allInputs.startPM.value = interv.startPM; allInputs.endPM.value = interv.endPM;
-                allInputs.workDone.value = interv.workDone; setMaterialsData(interv.materials);
+                allInputs.date.value = interv.date; 
+                allInputs.client.value = interv.client; 
+                allInputs.address.value = interv.address;
+                allInputs.workDone.value = interv.workDone;
                 allInputs.notes.value = interv.notes;
-                allInputs.bollaRef.value = interv.bollaRef; allInputs.bollaDate.value = interv.bollaDate;
+                
+                teamContainer.innerHTML = '';
+                interv.team.forEach(member => addMemberRow(member));
+                
+                setMaterialsData(interv.materials);
                 currentPhotos = interv.photos ? [...interv.photos] : [];
                 renderPhotoPreviews();
-                updateTotals();
+                updateAllTotals();
                 window.scrollTo(0, 0);
             }
         } else {
@@ -515,252 +743,35 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item) item.classList.toggle('expanded');
         }
     });
-    const saveToLocalStorage = () => {
+
+    const saveToLocalStorage = () => { 
         try {
-            localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions));
-            localStorage.setItem('employeeName', allInputs.employeeName.value);
+            localStorage.setItem('squadra_dailyInterventions', JSON.stringify(dailyInterventions)); 
         } catch (error) {
             console.error("Errore durante il salvataggio nel localStorage:", error);
             showToast('Impossibile salvare i dati, memoria piena?', 'error');
         }
     };
     const loadFromLocalStorage = () => {
-        const savedName = localStorage.getItem('employeeName');
-        if (savedName) allInputs.employeeName.value = savedName;
-        const data = localStorage.getItem('dailyInterventions');
+        const data = localStorage.getItem('squadra_dailyInterventions');
         if (data) {
-             try {
-                dailyInterventions = JSON.parse(data);
-                if (!Array.isArray(dailyInterventions)) {
-                    dailyInterventions = [];
-                }
-             } catch(e) {
+             try { 
+                dailyInterventions = JSON.parse(data); 
+                if (!Array.isArray(dailyInterventions)) { dailyInterventions = []; }
+             } catch(e) { 
                 console.error("Errore nel caricamento da localStorage:", e);
-                dailyInterventions = [];
+                dailyInterventions = []; 
              }
         }
     };
    
-    const generateFiles = async () => {
-        const employeeName = allInputs.employeeName.value.trim();
-        const now = new Date();
-        const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
-        const fileNameBase = `Report_${now.toISOString().slice(0,10)}_${employeeName.replace(/ /g, '_')}_${timeString}`;
-       
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-        let yPos = 40;
-        const pageHeight = doc.internal.pageSize.height;
-        const margin = 40;
-        const addHeader = (date) => {
-            const formattedDateForHeader = new Date(date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            doc.setFontSize(22); doc.setFont(undefined, 'bold');
-            doc.text(`Rapporto di Intervento Giornaliero`, doc.internal.pageSize.width / 2, yPos, { align: 'center' }); yPos += 30;
-            doc.setFontSize(12); doc.setFont(undefined, 'normal');
-            doc.text(`Data: ${formattedDateForHeader}`, margin, yPos);
-            doc.text(`Operatore: ${employeeName}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 25;
-            doc.setLineWidth(1.5); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); yPos += 20;
-        };
-        addHeader(dailyInterventions.length > 0 ? dailyInterventions[0].date : new Date().toISOString().slice(0,10));
-        for (const [index, interv] of dailyInterventions.entries()) {
-            const checkPageBreak = (space) => { if (yPos + space > pageHeight - margin) { doc.addPage(); yPos = margin; addHeader(interv.date); } };
-            checkPageBreak(120);
-            doc.setFontSize(14); doc.setFont(undefined, 'bold');
-            doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos); yPos += 15;
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            doc.text(`Indirizzo: ${interv.address || 'N/D'}`, margin, yPos); yPos += 20;
-            let timeString = (interv.startAM && interv.endAM ? `Mattino: ${interv.startAM}-${interv.endAM}` : '') + ((interv.startAM && interv.endAM && interv.startPM && interv.endPM) ? ' | ' : '') + (interv.startPM && interv.endPM ? `Pomeriggio: ${interv.startPM}-${interv.endPM}` : '');
-            doc.text(`Orari: ${timeString || 'N/D'}`, margin, yPos);
-            doc.text(`Ore Totali: ${interv.totalHours}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 20;
-            const addSection = (title, content) => {
-                if (content && content.trim() !== '') {
-                    doc.setFont(undefined, 'bold'); doc.text(title, margin, yPos); yPos += 12;
-                    doc.setFont(undefined, 'normal');
-                    const lines = doc.splitTextToSize(content, doc.internal.pageSize.width - margin * 2);
-                    checkPageBreak(lines.length * 12 + 20);
-                    doc.text(lines, margin, yPos); yPos += (lines.length * 12) + 10;
-                }
-            };
-            addSection('Lavoro Svolto:', interv.workDone);
-            const materialsText = (interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('\n') : '';
-            addSection('Materiali Utilizzati:', materialsText);
-            const formattedBollaDate = interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : '';
-            addSection('Riferimenti Bolla:', interv.bollaRef ? `${interv.bollaRef} del ${formattedBollaDate}` : '');
-            addSection('Note Aggiuntive:', interv.notes);
-            if (interv.photos && interv.photos.length > 0) {
-                checkPageBreak(40);
-                doc.setFont(undefined, 'bold'); doc.text('Foto Lavori:', margin, yPos); yPos += 15;
-                const photoSize = 120; let xPos = margin;
-                for (const photo of interv.photos) {
-                    if (xPos + photoSize > doc.internal.pageSize.width - margin) { xPos = margin; yPos += photoSize + 10; }
-                    checkPageBreak(photoSize + 20);
-                    try { doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, photoSize, photoSize); } catch (e) { console.error("Errore immagine PDF:", e); doc.text('[Immagine non supportata]', xPos, yPos + 20); }
-                    xPos += photoSize + 10;
-                }
-                yPos += photoSize + 20;
-            }
-            if (index < dailyInterventions.length - 1) { doc.setLineDashPattern([5, 5], 0); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); doc.setLineDashPattern([], 0); yPos += 20; }
-        }
-        const pdfBlob = doc.output('blob');
-       
-        const excelData = [];
-        let lastClient = null;
-        const sortedInterventions = [...dailyInterventions].sort((a,b) => `${a.date}-${a.client}`.localeCompare(`${b.date}-${b.client}`));
-       
-        sortedInterventions.forEach(i => {
-            if (lastClient !== null && i.client !== lastClient) {
-                excelData.push({});
-            }
-            lastClient = i.client;
-
-            const [y, m, d] = i.date.split('-');
-            const formattedDate = `${d}-${m}-${y}`;
-            const materials = i.materials || [];
-            const timeSlots = [];
-            if (i.startAM && i.endAM) { timeSlots.push({ start: i.startAM, end: i.endAM, duration: formatMinutes(calculateMinutes(i.startAM, i.endAM)) }); }
-            if (i.startPM && i.endPM) { timeSlots.push({ start: i.startPM, end: i.endPM, duration: formatMinutes(calculateMinutes(i.startPM, i.endPM)) }); }
-
-            const numRows = Math.max(timeSlots.length, materials.length, 1);
-            const interventionRows = [];
-
-            for (let j = 0; j < numRows; j++) {
-                const rowData = {};
-                if (j === 0) {
-                    rowData['Data'] = formattedDate; rowData['Cliente'] = i.client; rowData['Indirizzo'] = i.address;
-                    rowData['Dipendente'] = employeeName; rowData['Lavoro Svolto'] = i.workDone;
-                }
-                rowData['Ora Inizio'] = timeSlots[j] ? timeSlots[j].start : '';
-                rowData['Ora Fine'] = timeSlots[j] ? timeSlots[j].end : '';
-                rowData['Durata'] = timeSlots[j] ? timeSlots[j].duration : '';
-                rowData['Materiale'] = materials[j] ? materials[j].desc : '';
-                rowData['Q.ta'] = materials[j] ? materials[j].qty : '';
-                rowData['UM'] = materials[j] ? materials[j].unit : '';
-                interventionRows.push(rowData);
-            }
-            if (interventionRows.length === 0) {
-                 interventionRows.push({'Data': formattedDate, 'Cliente': i.client, 'Indirizzo': i.address, 'Dipendente': employeeName, 'Lavoro Svolto': i.workDone, 'Durata': i.totalHours });
-            }
-
-            const lastRow = interventionRows[interventionRows.length - 1];
-            lastRow['Rif. Bolla'] = i.bollaRef || '';
-            lastRow['Data Bolla'] = i.bollaDate || '';
-            lastRow['Note'] = i.notes || '';
-            excelData.push(...interventionRows);
-        });
-
-        const headers = ['Data', 'Cliente', 'Indirizzo', 'Dipendente', 'Ora Inizio', 'Ora Fine', 'Durata', 'Lavoro Svolto', 'Materiale', 'Q.ta', 'UM', 'Rif. Bolla', 'Data Bolla', 'Note'];
-        const ws = XLSX.utils.json_to_sheet(excelData, {header: headers});
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Interventi");
-        return { pdfBlob, wb, fileNameBase };
-    };
-   
-    saveReportBtn.addEventListener('click', async () => {
-        if (dailyInterventions.length === 0) return showToast('Nessun intervento da salvare.', 'error');
-        if (!allInputs.employeeName.value.trim()) {
-            allInputs.employeeName.classList.add('error');
-            return showToast('Inserisci il tuo nome per salvare il report.', 'error');
-        }
-        showToast('Preparazione file in corso...', 'info');
-       
-        const { wb, fileNameBase, pdfBlob } = await generateFiles();
-        generatedPdfBlob = pdfBlob;
-        generatedWb = wb;
-        generatedFileNameBase = fileNameBase;
-       
-        showToast('File pronti per il download!', 'success');
-        saveModal.style.display = 'flex';
-    });
-
-    sendReportBtn.addEventListener('click', () => {
-        if (dailyInterventions.length === 0) return showToast('Aggiungi almeno un intervento.', 'error');
-        const employeeName = allInputs.employeeName.value.trim();
-        if (!employeeName) {
-            allInputs.employeeName.classList.add('error');
-            return showToast('Inserisci il tuo nome per inviare.', 'error');
-        }
-        showToast('Apro l\'app di posta...', 'info');
-        const reportDate = dailyInterventions.length > 0 ? new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT') : new Date().toLocaleDateString('it-IT');
-        const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
-        const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file sono stati salvati nella cartella Download).\n\nBuona giornata.`;
-        const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
-        const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        window.location.href = mailtoLink;
-    });
-   
-    clearAllBtn.addEventListener('click', () => {
-        if (dailyInterventions.length === 0) return;
-        const confirmationText = "ATTENZIONE! Stai per eliminare TUTTI gli interventi salvati. Assicurati di aver prima scaricato e inviato il report via email. L'operazione non è reversibile. Confermi?";
-        if (confirm(confirmationText)) {
-            dailyInterventions = [];
-            renderInterventions();
-            saveToLocalStorage();
-            showToast('Elenco interventi pulito!', 'success');
-        }
-    });
-
-    modalSavePdfBtn.addEventListener('click', () => {
-        if (!generatedPdfBlob) return showToast('Errore: PDF non generato.', 'error');
-        const pdfUrl = URL.createObjectURL(generatedPdfBlob);
-        const a = document.createElement('a');
-        a.href = pdfUrl;
-        a.download = `${generatedFileNameBase}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
-        showToast('PDF salvato nei Download!', 'success');
-    });
-
-    modalSaveExcelBtn.addEventListener('click', () => {
-        if (!generatedWb) return showToast('Errore: Excel non generato.', 'error');
-        XLSX.writeFile(generatedWb, `${generatedFileNameBase}.xlsx`);
-        showToast('Excel salvato nei Download!', 'success');
-    });
-
-    modalCloseSaveBtn.addEventListener('click', () => {
-        saveModal.style.display = 'none';
-        generatedPdfBlob = null;
-        generatedWb = null;
-        generatedFileNameBase = '';
-    });
-
-    let deferredPrompt;
-    const installButton = document.getElementById('install-button');
-    const installModal = document.getElementById('install-instructions-modal');
-    const closeModalBtn = document.getElementById('close-modal-btn');
-   
-    if (window.matchMedia('(display-mode: standalone)').matches === false) {
-        installButton.style.display = 'block';
-    }
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        installButton.style.display = 'block';
-    });
-
-    installButton.addEventListener('click', async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                installButton.style.display = 'none';
-            }
-            deferredPrompt = null;
-        } else {
-            installModal.style.display = 'flex';
-        }
-    });
-    if(closeModalBtn) closeModalBtn.addEventListener('click', () => { installModal.style.display = 'none'; });
-
-    // --- Sequenza di avvio ---
-    allInputs.date.value = new Date().toISOString().slice(0, 10);
+    // INIZIALIZZAZIONE APP
     loadFromLocalStorage();
     renderInterventions();
-    addMaterialRow();
+    resetForm(); // Pulisce il form e prepara la riga per il caposquadra
 });
 </script>
+</body>
+</html>
 </body>
 </html>
