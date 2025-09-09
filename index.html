@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let dailyInterventions = [];
     let currentPhotos = [];
     const unitsOfMeasure = ["", "PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
-    
+   
     let generatedPdfBlob = null;
     let generatedWb = null;
     let generatedFileNameBase = '';
@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalMinutesSummary += interv.totalMinutes;
                 const item = document.createElement('div');
                 item.className = 'intervention-item';
-                
+               
                 let timeString = '';
                 if (interv.startAM && interv.endAM) { timeString += `<b>Mattino:</b> ${interv.startAM}-${interv.endAM}`; }
                 if (interv.startPM && interv.endPM) {
@@ -345,10 +345,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     timeString += `<b>Pomeriggio:</b> ${interv.startPM}-${interv.endPM}`;
                 }
                 if (timeString === '') timeString = 'N/D';
-                
+               
                 const formattedBollaDate = interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : 'N/D';
                 const formattedDate = new Date(interv.date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                
+               
                 item.innerHTML = `
                     <div class="summary-view">
                         <div class="info">
@@ -393,75 +393,56 @@ document.addEventListener('DOMContentLoaded', () => {
         addBtn.textContent = 'Aggiungi Rapporto';
         updateTotals();
     };
-    // +++ INIZIO BLOCCO DA INCOLLARE +++
-
-Object.values(allInputs).forEach(field => { if(field) field.classList.remove('error')});
-const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone];
-let textIsValid = true;
-requiredTextFields.forEach(field => { if (field && !field.value.trim()) { field.classList.add('error'); textIsValid = false; } });
-if (!textIsValid) return showToast('Compila i campi evidenziati!', 'error');
-const { startAM, endAM, startPM, endPM, date } = allInputs;
-if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) { startAM.classList.add('error'); endAM.classList.add('error'); return showToast("Orario mattino incompleto.", 'error'); }
-if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) { startPM.classList.add('error'); endPM.classList.add('error'); return showToast("Orario pomeriggio incompleto.", 'error'); }
-
-const newIntervals = [];
-if (startAM.value && endAM.value) newIntervals.push({start: startAM.value, end: endAM.value});
-if (startPM.value && endPM.value) newIntervals.push({start: startPM.value, end: endPM.value});
-if (newIntervals.length > 1 && newIntervals[0].end > newIntervals[1].start) {
-    allInputs.endAM.classList.add('error'); allInputs.startPM.classList.add('error');
-    return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error');
-}
-let existingIntervals = dailyInterventions
-    .filter(i => i.id.toString() !== interventionIdInput.value.toString())
-    .filter(i => i.date === date.value)
-    .flatMap(i => {
-        const intervals = [];
-        if (i.startAM && i.endAM) intervals.push({start: i.startAM, end: i.endAM, client: i.client});
-        if (i.startPM && i.endPM) intervals.push({start: i.startPM, end: i.endPM, client: i.client});
-        return intervals;
-    });
-for (const newInt of newIntervals) {
-    for (const oldInt of existingIntervals) {
-        if (newInt.start < oldInt.end && newInt.end > oldInt.start) {
-            return showToast(`Orario ${newInt.start}-${newInt.end} si sovrappone con l'intervento per ${oldInt.client}.`, 'error', 6000);
+    addBtn.addEventListener('click', () => {
+        Object.values(allInputs).forEach(field => { if(field) field.classList.remove('error')});
+        const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone, allInputs.address];
+        let textIsValid = true;
+        requiredTextFields.forEach(field => { if (field && !field.value.trim()) { field.classList.add('error'); textIsValid = false; } });
+        if (!textIsValid) return showToast('Compila i campi evidenziati!', 'error');
+        const { startAM, endAM, startPM, endPM, date } = allInputs;
+        if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) { startAM.classList.add('error'); endAM.classList.add('error'); return showToast("Orario mattino incompleto.", 'error'); }
+        if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) { startPM.classList.add('error'); endPM.classList.add('error'); return showToast("Orario pomeriggio incompleto.", 'error'); }
+       
+        const newIntervals = [];
+        if (startAM.value && endAM.value) newIntervals.push({start: startAM.value, end: endAM.value});
+        if (startPM.value && endPM.value) newIntervals.push({start: startPM.value, end: endPM.value});
+        if (newIntervals.length > 1 && newIntervals[0].end > newIntervals[1].start) {
+            allInputs.endAM.classList.add('error'); allInputs.startPM.classList.add('error');
+            return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error');
         }
-    }
-}
+        let existingIntervals = dailyInterventions
+            .filter(i => i.id.toString() !== interventionIdInput.value && i.date === date.value)
+            .flatMap(i => {
+                const intervals = [];
+                if (i.startAM && i.endAM) intervals.push({start: i.startAM, end: i.endAM, client: i.client});
+                if (i.startPM && i.endPM) intervals.push({start: i.startPM, end: i.endPM, client: i.client});
+                return intervals;
+            });
+        for (const newInt of newIntervals) {
+            for (const oldInt of existingIntervals) {
+                if (newInt.start < oldInt.end && newInt.end > oldInt.start) {
+                    return showToast(`Orario ${newInt.start}-${newInt.end} si sovrappone con l'intervento per ${oldInt.client}.`, 'error', 6000);
+                }
+            }
+        }
 
-const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
-if (totalMinutes <= 0 && getMaterialsData().length === 0) {
-    return showToast('Inserire almeno un intervallo di ore o un materiale.', 'error');
-}
-
-const intervention = {
-    id: interventionIdInput.value ? Number(interventionIdInput.value) : Date.now(),
-    date: allInputs.date.value, 
-    client: allInputs.client.value, 
-    address: allInputs.address.value,
-    startAM: allInputs.startAM.value, endAM: allInputs.endAM.value,
-    startPM: allInputs.startPM.value, endPM: allInputs.endPM.value,
-    totalHours: formatMinutes(totalMinutes), totalMinutes: totalMinutes,
-    workDone: allInputs.workDone.value, 
-    materials: getMaterialsData(), 
-    notes: allInputs.notes.value,
-    photos: [...currentPhotos],
-    bollaRef: allInputs.bollaRef.value, 
-    bollaDate: allInputs.bollaDate.value
-};
-
-const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
-if (existingIndex > -1) {
-    dailyInterventions[existingIndex] = intervention;
-    showToast('Intervento modificato!');
-} else {
-    dailyInterventions.push(intervention);
-    showToast('Intervento aggiunto!');
-}
-
-renderInterventions();
-resetForm();
-
-// +++ FINE BLOCCO DA INCOLLARE +++
+        const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
+        if (totalMinutes <= 0) return showToast('Inserire almeno un intervallo di ore valido.', 'error');
+        const intervention = {
+            id: interventionIdInput.value ? Number(interventionIdInput.value) : Date.now(),
+            date: allInputs.date.value, client: allInputs.client.value, address: allInputs.address.value,
+            startAM: allInputs.startAM.value, endAM: allInputs.endAM.value,
+            startPM: allInputs.startPM.value, endPM: allInputs.endPM.value,
+            totalHours: formatMinutes(totalMinutes), totalMinutes: totalMinutes,
+            workDone: allInputs.workDone.value, materials: getMaterialsData(), notes: allInputs.notes.value,
+            photos: [...currentPhotos],
+            bollaRef: allInputs.bollaRef.value, bollaDate: allInputs.bollaDate.value
+        };
+        const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
+        if (existingIndex > -1) { dailyInterventions[existingIndex] = intervention; showToast('Intervento modificato!'); }
+        else { dailyInterventions.push(intervention); showToast('Intervento aggiunto!'); }
+        renderInterventions();
+        resetForm();
     });
     interventionsList.addEventListener('click', (e) => {
         const target = e.target;
@@ -504,7 +485,7 @@ resetForm();
              try { dailyInterventions = JSON.parse(data); } catch(e) { dailyInterventions = []; }
         }
     };
-    
+   
     const generateFiles = async () => {
         const employeeName = allInputs.employeeName.value.trim();
         const now = new Date();
@@ -571,7 +552,7 @@ resetForm();
         const excelData = [];
         let lastClient = null;
         const sortedInterventions = [...dailyInterventions].sort((a,b) => `${a.date}-${a.client}`.localeCompare(`${b.date}-${b.client}`));
-        
+       
         sortedInterventions.forEach(i => {
             if (lastClient !== null && i.client !== lastClient) {
                 excelData.push({});
@@ -648,7 +629,7 @@ resetForm();
         const reportDate = dailyInterventions.length > 0 ? new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT') : new Date().toLocaleDateString('it-IT');
         const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
         const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file sono stati salvati nella cartella Download).\n\nBuona giornata.`;
-        const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
+        const targetEmail = 'tua-email@esempio.com'; // <--- CAMBIA QUI L'EMAIL
         const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         window.location.href = mailtoLink;
     });
