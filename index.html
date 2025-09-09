@@ -174,7 +174,6 @@
         <button id="modal-close-save" class="btn-secondary" style="margin-top: 20px;">Annulla</button>
     </div>
 </div>
-
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -428,6 +427,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
         if (totalMinutes <= 0) return showToast('Inserire almeno un intervallo di ore valido.', 'error');
+        
+        // ==============================================================================
+        // == MODIFICA CHIRURGICA: Qui sta la correzione principale. ==
+        // Salviamo solo i dati delle foto che possono essere memorizzati (id e dataUrl),
+        // escludendo l'oggetto "file" che causava l'errore di salvataggio.
+        // ==============================================================================
+        const photosToSave = currentPhotos.map(p => ({ id: p.id, dataUrl: p.dataUrl }));
+        
         const intervention = {
             id: interventionIdInput.value ? Number(interventionIdInput.value) : Date.now(),
             date: allInputs.date.value, client: allInputs.client.value, address: allInputs.address.value,
@@ -435,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
             startPM: allInputs.startPM.value, endPM: allInputs.endPM.value,
             totalHours: formatMinutes(totalMinutes), totalMinutes: totalMinutes,
             workDone: allInputs.workDone.value, materials: getMaterialsData(), notes: allInputs.notes.value,
-            photos: [...currentPhotos],
+            photos: photosToSave, // Usa l'array di foto corretto per il salvataggio
             bollaRef: allInputs.bollaRef.value, bollaDate: allInputs.bollaDate.value
         };
         const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
@@ -466,6 +473,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 allInputs.workDone.value = interv.workDone; setMaterialsData(interv.materials);
                 allInputs.notes.value = interv.notes;
                 allInputs.bollaRef.value = interv.bollaRef; allInputs.bollaDate.value = interv.bollaDate;
+                // Quando si modifica, currentPhotos viene ripopolato con i dati salvati.
+                // Il file originale non è necessario, solo l'anteprima (dataUrl).
                 currentPhotos = interv.photos ? [...interv.photos] : [];
                 renderPhotoPreviews();
                 updateTotals();
@@ -476,13 +485,29 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item) item.classList.toggle('expanded');
         }
     });
-    const saveToLocalStorage = () => { localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions)); localStorage.setItem('employeeName', allInputs.employeeName.value); };
+    const saveToLocalStorage = () => { 
+        try {
+            localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions)); 
+            localStorage.setItem('employeeName', allInputs.employeeName.value); 
+        } catch (error) {
+            console.error("Errore durante il salvataggio nel localStorage:", error);
+            showToast('Impossibile salvare i dati, memoria piena?', 'error');
+        }
+    };
     const loadFromLocalStorage = () => {
         const savedName = localStorage.getItem('employeeName');
         if (savedName) allInputs.employeeName.value = savedName;
         const data = localStorage.getItem('dailyInterventions');
         if (data) {
-             try { dailyInterventions = JSON.parse(data); } catch(e) { dailyInterventions = []; }
+             try { 
+                dailyInterventions = JSON.parse(data); 
+                if (!Array.isArray(dailyInterventions)) { // Controllo di sicurezza
+                    dailyInterventions = [];
+                }
+             } catch(e) { 
+                console.error("Errore nel caricamento da localStorage:", e);
+                dailyInterventions = []; 
+             }
         }
     };
    
@@ -700,10 +725,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if(closeModalBtn) closeModalBtn.addEventListener('click', () => { installModal.style.display = 'none'; });
 
+    // --- Sequenza di avvio ---
     allInputs.date.value = new Date().toISOString().slice(0, 10);
-    loadFromLocalStorage();
-    renderInterventions();
-    addMaterialRow();
+    loadFromLocalStorage(); // 1. Carica i dati salvati
+    renderInterventions();  // 2. Mostra a schermo i dati caricati (e salva, per consistenza)
+    addMaterialRow();       // 3. Aggiungi la prima riga vuota per i materiali
 });
 </script>
 </body>
