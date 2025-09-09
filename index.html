@@ -122,6 +122,17 @@
             <div id="materials-container"></div>
             <button id="add-material-btn" class="btn-secondary">+</button>
         </div>
+        <!-- NUOVO BLOCCO CAMPI BOLLA -->
+        <h4 class="section-title">Riferimenti Bolla (Opzionale)</h4>
+        <div class="bolla-section">
+        <div class="form-group"><label for="bolla-ref">Rif. Bolla</label><input type="text" id="bolla-ref" placeholder="Numero o riferimento"></div>
+        <div class="form-group"><label for="bolla-date">Data Bolla</label><input type="date" id="bolla-date"></div>
+</div>
+<!-- FINE NUOVO BLOCCO -->
+```    (L'ho inserito dentro un `div` contenitore `bolla-section` per applicare lo stesso stile a griglia degli orari).
+
+
+        
         <div class="form-group">
             <h4 class="section-title">Foto Lavori (Opzionale)</h4>
             <div class="action-buttons-container">
@@ -179,13 +190,15 @@ if ('serviceWorker' in navigator) {
 }
 document.addEventListener('DOMContentLoaded', () => {
     const allInputs = {
-        date: document.getElementById('date'), client: document.getElementById('client'),
-        address: document.getElementById('address'),
-        startAM: document.getElementById('start-am'), endAM: document.getElementById('end-am'),
-        startPM: document.getElementById('start-pm'), endPM: document.getElementById('end-pm'),
-        workDone: document.getElementById('work-done'), notes: document.getElementById('notes'),
-        employeeName: document.getElementById('employee-name')
-    };
+    date: document.getElementById('date'), client: document.getElementById('client'),
+    address: document.getElementById('address'),
+    startAM: document.getElementById('start-am'), endAM: document.getElementById('end-am'),
+    startPM: document.getElementById('start-pm'), endPM: document.getElementById('end-pm'),
+    workDone: document.getElementById('work-done'), notes: document.getElementById('notes'),
+    employeeName: document.getElementById('employee-name'),
+    bollaRef: document.getElementById('bolla-ref'),   // <-- RIGA DA AGGIUNGERE
+    bollaDate: document.getElementById('bolla-date') // <-- RIGA DA AGGIUNGERE
+};
     const materialsContainer = document.getElementById('materials-container');
     const addMaterialBtn = document.getElementById('add-material-btn');
     const photoInputCamera = document.getElementById('photo-input-camera');
@@ -364,6 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><b>Orari:</b><br>${timeString}</p>
                         <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
                         <p><b>Materiali Utilizzati:</b><br>${(interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') : 'Nessuno'}</p>
+                        <p><b>Rif. Bolla:</b> ${interv.bollaRef || 'N/D'} | <b>Data Bolla:</b> ${formattedBollaDate}</p> <!-- BLOCCO DA AGGIUNGERE -->
                         <p><b>Note:</b><br>${interv.notes || 'N/D'}</p>
                         <p><b>Foto:</b><br>${(interv.photos && interv.photos.length > 0) ? `${interv.photos.length} foto allegate` : 'Nessuna'}</p>
                     </div>
@@ -428,6 +442,8 @@ document.addEventListener('DOMContentLoaded', () => {
             totalHours: formatMinutes(totalMinutes), totalMinutes: totalMinutes,
             workDone: allInputs.workDone.value, materials: getMaterialsData(), notes: allInputs.notes.value,
             photos: [...currentPhotos]
+            bollaRef: allInputs.bollaRef.value,   // <-- RIGA DA AGGIUNGERE
+            bollaDate: allInputs.bollaDate.value // <-- RIGA DA AGGIUNGERE
         };
         const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
         if (existingIndex > -1) { dailyInterventions[existingIndex] = intervention; showToast('Intervento modificato!'); }
@@ -456,6 +472,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 allInputs.startPM.value = interv.startPM; allInputs.endPM.value = interv.endPM;
                 allInputs.workDone.value = interv.workDone; setMaterialsData(interv.materials);
                 allInputs.notes.value = interv.notes;
+                allInputs.bollaRef.value = interv.bollaRef;   // <-- RIGA DA AGGIUNGERE
+                allInputs.bollaDate.value = interv.bollaDate; // <-- RIGA DA AGGIUNGERE
                 currentPhotos = interv.photos ? [...interv.photos] : [];
                 renderPhotoPreviews();
                 updateTotals();
@@ -476,76 +494,140 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    const generateFiles = async () => {
-        const employeeName = allInputs.employeeName.value.trim();
-        const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
-        const now = new Date();
-        const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
-        const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}_${timeString}`;
-        
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-        let yPos = 40;
-        const pageHeight = doc.internal.pageSize.height;
-        const margin = 40;
-        const addHeader = (date) => {
-            const formattedDateForHeader = new Date(date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            doc.setFontSize(22); doc.setFont(undefined, 'bold');
-            doc.text(`Rapporto di Intervento Giornaliero`, doc.internal.pageSize.width / 2, yPos, { align: 'center' }); yPos += 30;
-            doc.setFontSize(12); doc.setFont(undefined, 'normal');
-            doc.text(`Data: ${formattedDateForHeader}`, margin, yPos);
-            doc.text(`Operatore: ${employeeName}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 25;
-            doc.setLineWidth(1.5); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); yPos += 20;
-        };
-        addHeader(reportDate);
-        for (const [index, interv] of dailyInterventions.entries()) {
-            const checkPageBreak = (space) => { if (yPos + space > pageHeight - margin) { doc.addPage(); yPos = margin; addHeader(interv.date); } };
-            checkPageBreak(120);
-            doc.setFontSize(14); doc.setFont(undefined, 'bold');
-            doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos); yPos += 15;
+// +++ INIZIO BLOCCO generateFiles DA INCOLLARE +++
+
+const employeeName = allInputs.employeeName.value.trim();
+const reportDate = dailyInterventions.length > 0 ? dailyInterventions[0].date : allInputs.date.value;
+const now = new Date();
+const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
+const fileNameBase = `Report_${reportDate}_${employeeName.replace(/ /g, '_')}_${timeString}`;
+
+// --- Inizio Logica PDF ---
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+let yPos = 40;
+const pageHeight = doc.internal.pageSize.height;
+const margin = 40;
+const addHeader = (date) => {
+    const formattedDateForHeader = new Date(date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    doc.setFontSize(22); doc.setFont(undefined, 'bold');
+    doc.text(`Rapporto di Intervento Giornaliero`, doc.internal.pageSize.width / 2, yPos, { align: 'center' }); yPos += 30;
+    doc.setFontSize(12); doc.setFont(undefined, 'normal');
+    doc.text(`Data: ${formattedDateForHeader}`, margin, yPos);
+    doc.text(`Operatore: ${employeeName}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 25;
+    doc.setLineWidth(1.5); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); yPos += 20;
+};
+addHeader(reportDate);
+for (const [index, interv] of dailyInterventions.entries()) {
+    const checkPageBreak = (space) => { if (yPos + space > pageHeight - margin) { doc.addPage(); yPos = margin; addHeader(interv.date); } };
+    checkPageBreak(120);
+    doc.setFontSize(14); doc.setFont(undefined, 'bold');
+    doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos); yPos += 15;
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(10);
+    doc.text(`Indirizzo: ${interv.address || 'N/D'}`, margin, yPos); yPos += 20;
+    let timeString = (interv.startAM && interv.endAM ? `Mattino: ${interv.startAM}-${interv.endAM}` : '') + ((interv.startAM && interv.endAM && interv.startPM && interv.endPM) ? ' | ' : '') + (interv.startPM && interv.endPM ? `Pomeriggio: ${interv.startPM}-${interv.endPM}` : '');
+    doc.text(`Orari: ${timeString || 'N/D'}`, margin, yPos);
+    doc.text(`Ore Totali: ${interv.totalHours}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 20;
+    const addSection = (title, content) => {
+        if (content && content.trim() !== '') {
+            doc.setFont(undefined, 'bold'); doc.text(title, margin, yPos); yPos += 12;
             doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            doc.text(`Indirizzo: ${interv.address || 'N/D'}`, margin, yPos); yPos += 20;
-            let timeString = (interv.startAM && interv.endAM ? `Mattino: ${interv.startAM}-${interv.endAM}` : '') + ((interv.startAM && interv.endAM && interv.startPM && interv.endPM) ? ' | ' : '') + (interv.startPM && interv.endPM ? `Pomeriggio: ${interv.startPM}-${interv.endPM}` : '');
-            doc.text(`Orari: ${timeString || 'N/D'}`, margin, yPos);
-            doc.text(`Ore Totali: ${interv.totalHours}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 20;
-            const addSection = (title, content) => {
-                if (content && content.trim() !== '') {
-                    doc.setFont(undefined, 'bold'); doc.text(title, margin, yPos); yPos += 12;
-                    doc.setFont(undefined, 'normal');
-                    const lines = doc.splitTextToSize(content, doc.internal.pageSize.width - margin * 2);
-                    checkPageBreak(lines.length * 12 + 20);
-                    doc.text(lines, margin, yPos); yPos += (lines.length * 12) + 10;
-                }
-            };
-            addSection('Lavoro Svolto:', interv.workDone);
-            const materialsText = (interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('\n') : '';
-            addSection('Materiali Utilizzati:', materialsText);
-            addSection('Note Aggiuntive:', interv.notes);
-            if (interv.photos && interv.photos.length > 0) {
-                checkPageBreak(40);
-                doc.setFont(undefined, 'bold'); doc.text('Foto Lavori:', margin, yPos); yPos += 15;
-                const photoSize = 120; let xPos = margin;
-                for (const photo of interv.photos) {
-                    if (xPos + photoSize > doc.internal.pageSize.width - margin) { xPos = margin; yPos += photoSize + 10; }
-                    checkPageBreak(photoSize + 20);
-                    try { doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, photoSize, photoSize); } catch (e) { console.error("Errore immagine PDF:", e); doc.text('[Immagine non supportata]', xPos, yPos + 20); }
-                    xPos += photoSize + 10;
-                }
-                yPos += photoSize + 20;
-            }
-            if (index < dailyInterventions.length - 1) { doc.setLineDashPattern([5, 5], 0); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); doc.setLineDashPattern([], 0); yPos += 20; }
+            const lines = doc.splitTextToSize(content, doc.internal.pageSize.width - margin * 2);
+            checkPageBreak(lines.length * 12 + 20);
+            doc.text(lines, margin, yPos); yPos += (lines.length * 12) + 10;
         }
-        const pdfBlob = doc.output('blob');
-        
-        const excelData = dailyInterventions.flatMap(i => {
-            return i.materials.length > 0 ? i.materials.map(m => ({ Dipendente: employeeName, Data: i.date, Cliente: i.client, Indirizzo: i.address, Ore_Totali_Intervento: i.totalHours, Lavoro_Svolto: i.workDone, Note: i.notes, Qta_Materiale: m.qty, UM_Materiale: m.unit, Desc_Materiale: m.desc })) : [{ Dipendente: employeeName, Data: i.date, Cliente: i.client, Indirizzo: i.address, Ore_Totali_Intervento: i.totalHours, Lavoro_Svolto: i.workDone, Note: i.notes, Qta_Materiale: '', UM_Materiale: '', Desc_Materiale: '' }];
-        });
-        const ws = XLSX.utils.json_to_sheet(excelData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Interventi");
-        return { pdfBlob, wb, fileNameBase };
     };
+    addSection('Lavoro Svolto:', interv.workDone);
+    const materialsText = (interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('\n') : '';
+    addSection('Materiali Utilizzati:', materialsText);
+    const formattedBollaDate = interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : '';
+    addSection('Riferimenti Bolla:', interv.bollaRef ? `${interv.bollaRef} del ${formattedBollaDate}` : '');
+    addSection('Note Aggiuntive:', interv.notes);
+    if (interv.photos && interv.photos.length > 0) {
+        checkPageBreak(40);
+        doc.setFont(undefined, 'bold'); doc.text('Foto Lavori:', margin, yPos); yPos += 15;
+        const photoSize = 120; let xPos = margin;
+        for (const photo of interv.photos) {
+            if (xPos + photoSize > doc.internal.pageSize.width - margin) { xPos = margin; yPos += photoSize + 10; }
+            checkPageBreak(photoSize + 20);
+            try { doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, photoSize, photoSize); } catch (e) { console.error("Errore immagine PDF:", e); doc.text('[Immagine non supportata]', xPos, yPos + 20); }
+            xPos += photoSize + 10;
+        }
+        yPos += photoSize + 20;
+    }
+    if (index < dailyInterventions.length - 1) { doc.setLineDashPattern([5, 5], 0); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); doc.setLineDashPattern([], 0); yPos += 20; }
+}
+const pdfBlob = doc.output('blob');
+// --- Fine Logica PDF ---
+
+// --- Inizio Logica EXCEL ---
+const excelData = [];
+let lastClient = null;
+const sortedInterventions = [...dailyInterventions].sort((a,b) => `${a.date}-${a.client}`.localeCompare(`${b.date}-${b.client}`));
+
+sortedInterventions.forEach(i => {
+    if (lastClient !== null && i.client !== lastClient) {
+        excelData.push({}); // Aggiunge riga vuota se cambia cliente
+    }
+    lastClient = i.client;
+
+    const [y, m, d] = i.date.split('-');
+    const formattedDate = `${d}-${m}-${y}`;
+    const materials = i.materials || [];
+    const timeSlots = [];
+    if (i.startAM && i.endAM) { timeSlots.push({ start: i.startAM, end: i.endAM, duration: formatMinutes(calculateMinutes(i.startAM, i.endAM)) }); }
+    if (i.startPM && i.endPM) { timeSlots.push({ start: i.startPM, end: i.endPM, duration: formatMinutes(calculateMinutes(i.startPM, i.endPM)) }); }
+
+    const numRows = Math.max(timeSlots.length, materials.length, 1);
+    const interventionRows = [];
+
+    for (let j = 0; j < numRows; j++) {
+        const rowData = {};
+        if (j === 0) {
+            rowData['Data'] = formattedDate; rowData['Cliente'] = i.client; rowData['Indirizzo'] = i.address;
+            rowData['Dipendente'] = employeeName; rowData['Lavoro Svolto'] = i.workDone;
+        } else {
+            rowData['Data'] = ''; rowData['Cliente'] = ''; rowData['Indirizzo'] = '';
+            rowData['Dipendente'] = ''; rowData['Lavoro Svolto'] = '';
+        }
+
+        rowData['Ora Inizio'] = timeSlots[j] ? timeSlots[j].start : '';
+        rowData['Ora Fine'] = timeSlots[j] ? timeSlots[j].end : '';
+        rowData['Durata'] = timeSlots[j] ? timeSlots[j].duration : '';
+        
+        rowData['Materiale'] = materials[j] ? materials[j].desc : '';
+        rowData['Q.ta'] = materials[j] ? materials[j].qty : '';
+        rowData['UM'] = materials[j] ? materials[j].unit : '';
+        
+        rowData['Rif. Bolla'] = ''; rowData['Data Bolla'] = ''; rowData['Note'] = '';
+        interventionRows.push(rowData);
+    }
+    
+    if (interventionRows.length === 0) {
+         interventionRows.push({
+            'Data': formattedDate, 'Cliente': i.client, 'Indirizzo': i.address, 'Dipendente': employeeName,
+            'Lavoro Svolto': i.workDone, 'Durata': i.totalHours
+        });
+    }
+
+    const lastRow = interventionRows[interventionRows.length - 1];
+    lastRow['Rif. Bolla'] = i.bollaRef || '';
+    lastRow['Data Bolla'] = i.bollaDate || '';
+    lastRow['Note'] = i.notes || '';
+    
+    excelData.push(...interventionRows);
+});
+
+const headers = ['Data', 'Cliente', 'Indirizzo', 'Dipendente', 'Ora Inizio', 'Ora Fine', 'Durata', 'Lavoro Svolto', 'Materiale', 'Q.ta', 'UM', 'Rif. Bolla', 'Data Bolla', 'Note'];
+const ws = XLSX.utils.json_to_sheet(excelData, {header: headers});
+const wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, ws, "Interventi");
+// --- Fine Logica EXCEL ---
+
+return { pdfBlob, wb, fileNameBase };
+
+// +++ FINE BLOCCO generateFiles DA INCOLLARE +++
     
     saveReportBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da salvare.', 'error');
