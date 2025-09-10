@@ -44,6 +44,7 @@
         #total-hours { font-size: 1.5em; font-weight: bold; color: var(--success-color); text-align: center; margin: 20px 0; }
         button { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
         button:active { transform: scale(0.98); }
+        button:disabled { background-color: #adb5bd; cursor: not-allowed; opacity: 0.7; }
         .btn-primary { background-color: var(--primary-color); color: white; }
         .btn-success { background-color: var(--success-color); color: white; }
         .btn-danger { background-color: var(--danger-color); color: white; }
@@ -191,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bollaRef: document.getElementById('bolla-ref'),
         bollaDate: document.getElementById('bolla-date')
     };
+    const formCard = document.getElementById('form-card');
     const materialsContainer = document.getElementById('materials-container');
     const addMaterialBtn = document.getElementById('add-material-btn');
     const photoInputCamera = document.getElementById('photo-input-camera');
@@ -208,18 +210,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const subtotalPMSpan = document.getElementById('subtotal-pm');
     const totalHoursSpan = document.getElementById('total-hours');
     const summaryTotalSpan = document.getElementById('summary-total');
+    
     let dailyInterventions = [];
     let currentPhotos = [];
     const unitsOfMeasure = ["", "PZ", "NR", "MT", "MQ", "KG", "LT", "SC", "CONF", "ORE", "Altro..."];
    
-    let generatedPdfBlob = null;
-    let generatedWb = null;
-    let generatedFileNameBase = '';
-
     const saveModal = document.getElementById('save-modal');
     const modalSavePdfBtn = document.getElementById('modal-save-pdf');
     const modalSaveExcelBtn = document.getElementById('modal-save-excel');
     const modalCloseSaveBtn = document.getElementById('modal-close-save');
+    let generatedPdfBlob = null;
+    let generatedWb = null;
+    let generatedFileNameBase = '';
 
     const calculateMinutes = (start, end) => {
         if (!start || !end) return 0;
@@ -229,6 +231,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return (e - s) / 60000;
     };
     const formatMinutes = (m) => (m <= 0) ? '0h 0min' : `${Math.floor(m / 60)}h ${Math.round(m % 60)}min`;
+    
+    const updateButtonStates = (isFormDirty) => {
+        const hasInterventions = dailyInterventions.length > 0;
+        saveReportBtn.disabled = isFormDirty || !hasInterventions;
+        sendReportBtn.disabled = isFormDirty || !hasInterventions;
+        clearAllBtn.disabled = isFormDirty || !hasInterventions;
+    };
+
     const updateTotals = () => {
         const minutesAM = calculateMinutes(allInputs.startAM.value, allInputs.endAM.value);
         const minutesPM = calculateMinutes(allInputs.startPM.value, allInputs.endPM.value);
@@ -236,12 +246,16 @@ document.addEventListener('DOMContentLoaded', () => {
         subtotalPMSpan.textContent = formatMinutes(minutesPM);
         totalHoursSpan.textContent = `Totale Ore: ${formatMinutes(minutesAM + minutesPM)}`;
     };
+
     Object.values(allInputs).forEach(el => {
         if (!el) return;
-        const isTextField = el.type === 'text' || el.tagName === 'TEXTAREA' || el.type === 'date';
-        if (isTextField) { el.addEventListener('input', () => el.classList.remove('error')); }
-        else if (el.type === 'time') { el.addEventListener('input', () => { el.classList.remove('error'); updateTotals(); }); }
+        if (el.type === 'time') {
+            el.addEventListener('input', () => { el.classList.remove('error'); updateTotals(); });
+        } else {
+            el.addEventListener('input', () => el.classList.remove('error'));
+        }
     });
+
     document.querySelectorAll('.clear-time-btn').forEach(button => {
         button.addEventListener('click', (event) => {
             event.preventDefault();
@@ -249,11 +263,13 @@ document.addEventListener('DOMContentLoaded', () => {
             updateTotals();
         });
     });
+    
     const showToast = (message, type = 'success', duration = 3000) => {
         toast.textContent = message;
         toast.className = `show ${type}`;
         setTimeout(() => { toast.className = ''; }, duration);
     };
+
     const addMaterialRow = (qty = '', unit = '', desc = '') => {
         const row = document.createElement('div');
         row.className = 'material-row';
@@ -274,14 +290,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     const getMaterialsData = () => {
-        const materials = [];
-        document.querySelectorAll('#materials-container .material-row').forEach(row => {
-            const qty = row.querySelector('.material-qty').value;
-            const unit = row.querySelector('.material-unit').value;
-            const desc = row.querySelector('.material-desc').value.trim();
-            if (qty && unit && desc) { materials.push({ qty, unit, desc }); }
-        });
-        return materials;
+        return Array.from(document.querySelectorAll('#materials-container .material-row')).map(row => ({
+            qty: row.querySelector('.material-qty').value,
+            unit: row.querySelector('.material-unit').value,
+            desc: row.querySelector('.material-desc').value.trim()
+        })).filter(m => m.qty && m.unit && m.desc);
     };
     const setMaterialsData = (materials = []) => {
         materialsContainer.innerHTML = '';
@@ -289,17 +302,10 @@ document.addEventListener('DOMContentLoaded', () => {
         else { materials.forEach(m => addMaterialRow(m.qty, m.unit, m.desc)); }
     };
 
-    // ==============================================================================
-    // == NUOVA FUNZIONE PER GESTIRE E COMPRIMERE LE FOTO ==
-    // Questa è la modifica principale che risolve il problema della memoria piena.
-    // ==============================================================================
     const handlePhotoFiles = (files) => {
         if (!files || files.length === 0) return;
         showToast('Caricamento e compressione foto...', 'info');
-        
-        const MAX_WIDTH = 1024; // Larghezza massima in pixel
-        const QUALITY = 0.8;    // Qualità del JPEG (da 0 a 1)
-
+        const MAX_WIDTH = 1024, QUALITY = 0.8;
         Array.from(files).forEach(file => {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -307,32 +313,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     let { width, height } = img;
-
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_WIDTH) {
-                            width *= MAX_WIDTH / height;
-                            height = MAX_WIDTH;
-                        }
-                    }
+                    if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } }
+                    else { if (height > MAX_WIDTH) { width *= MAX_WIDTH / height; height = MAX_WIDTH; } }
                     canvas.width = width;
                     canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    // Ottieni il dataUrl compresso
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                     const compressedDataUrl = canvas.toDataURL('image/jpeg', QUALITY);
-
-                    const photoId = Date.now() + '-' + file.name;
-                    currentPhotos.push({ 
-                        id: photoId, 
-                        dataUrl: compressedDataUrl // Salva la versione compressa
-                    });
-                    
+                    currentPhotos.push({ id: Date.now() + '-' + file.name, dataUrl: compressedDataUrl });
                     renderPhotoPreviews();
                 };
                 img.src = e.target.result;
@@ -340,7 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsDataURL(file);
         });
     };
-
     photoInputCamera.addEventListener('change', (event) => { handlePhotoFiles(event.target.files); event.target.value = ''; });
     photoInputGallery.addEventListener('change', (event) => { handlePhotoFiles(event.target.files); event.target.value = ''; });
     const renderPhotoPreviews = () => {
@@ -359,31 +345,106 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPhotoPreviews();
         }
     });
-    const renderInterventions = () => {
+
+    addBtn.addEventListener('click', () => {
+        Object.values(allInputs).forEach(field => { if(field) field.classList.remove('error')});
+        const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone, allInputs.address];
+        let isValid = true;
+        requiredTextFields.forEach(field => { if (field && !field.value.trim()) { field.classList.add('error'); isValid = false; } });
+        if (!isValid) return showToast('Compila i campi evidenziati!', 'error');
+
+        const { startAM, endAM, startPM, endPM, date } = allInputs;
+        if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) { startAM.classList.add('error'); endAM.classList.add('error'); return showToast("Orario mattino incompleto.", 'error'); }
+        if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) { startPM.classList.add('error'); endPM.classList.add('error'); return showToast("Orario pomeriggio incompleto.", 'error'); }
+       
+        if (startPM.value && startPM.value < "12:01") {
+            showToast('L\'orario del pomeriggio non può iniziare prima delle 12:01.', 'error', 5000);
+            startPM.classList.add('error');
+            return;
+        }
+        if (endAM.value && startPM.value && endAM.value > startPM.value) {
+            showToast('La fine del mattino non può essere dopo l\'inizio del pomeriggio.', 'error', 6000);
+            endAM.classList.add('error');
+            startPM.classList.add('error');
+            return;
+        }
+
+        const newIntervals = [];
+        if (startAM.value && endAM.value) newIntervals.push({start: startAM.value, end: endAM.value});
+        if (startPM.value && endPM.value) newIntervals.push({start: startPM.value, end: endPM.value});
+        
+        const existingInterventionsOnDate = dailyInterventions.filter(i => i.date === date.value && i.id.toString() !== interventionIdInput.value);
+        for(const existingInter of existingInterventionsOnDate) {
+            const existingIntervals = [];
+            if (existingInter.startAM && existingInter.endAM) existingIntervals.push({start: existingInter.startAM, end: existingInter.endAM});
+            if (existingInter.startPM && existingInter.endPM) existingIntervals.push({start: existingInter.startPM, end: existingInter.endPM});
+            for (const newInt of newIntervals) {
+                for (const oldInt of existingIntervals) {
+                    if (newInt.start < oldInt.end && newInt.end > oldInt.start) {
+                        return showToast(`Orario ${newInt.start}-${newInt.end} si sovrappone con un altro intervento per ${existingInter.client}.`, 'error', 6000);
+                    }
+                }
+            }
+        }
+        
+        const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
+        if (totalMinutes <= 0) return showToast('Inserire almeno un intervallo di ore valido.', 'error');
+        
+        const intervention = {
+            id: interventionIdInput.value ? Number(interventionIdInput.value) : Date.now(),
+            date: allInputs.date.value, employeeName: allInputs.employeeName.value,
+            client: allInputs.client.value, address: allInputs.address.value,
+            startAM: allInputs.startAM.value, endAM: allInputs.endAM.value,
+            startPM: allInputs.startPM.value, endPM: allInputs.endPM.value,
+            totalHours: formatMinutes(totalMinutes), totalMinutes: totalMinutes,
+            workDone: allInputs.workDone.value, materials: getMaterialsData(), notes: allInputs.notes.value,
+            photos: currentPhotos.map(p => ({ id: p.id, dataUrl: p.dataUrl })),
+            bollaRef: allInputs.bollaRef.value, bollaDate: allInputs.bollaDate.value
+        };
+        const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
+        if (existingIndex > -1) {
+            dailyInterventions[existingIndex] = intervention;
+            showToast('Intervento modificato!');
+        } else {
+            dailyInterventions.push(intervention);
+            showToast('Intervento aggiunto!');
+        }
+        renderInterventions();
+        resetForm();
+    });
+
+    const resetForm = () => {
+        const employeeName = allInputs.employeeName.value;
+        Object.values(allInputs).forEach(input => { if (input) input.value = ''; });
+        allInputs.employeeName.value = employeeName; // Mantiene il nome
+        allInputs.date.value = new Date().toISOString().slice(0, 10);
+        interventionIdInput.value = '';
+        setMaterialsData([]);
+        currentPhotos = [];
+        renderPhotoPreviews();
+        formTitle.textContent = 'Nuovo Intervento';
+        addBtn.textContent = 'Aggiungi Rapporto';
+        updateTotals();
+        updateButtonStates(false);
+    };
+        const renderInterventions = () => {
         interventionsList.innerHTML = '';
         let totalMinutesSummary = 0;
         dailyInterventions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         if (dailyInterventions.length === 0) {
             interventionsList.innerHTML = '<p>Nessun intervento aggiunto.</p>';
-            clearAllBtn.style.display = 'none';
+            summaryTotalSpan.textContent = 'Totale: 0h 0min';
         } else {
-            clearAllBtn.style.display = 'block';
             dailyInterventions.forEach(interv => {
                 totalMinutesSummary += interv.totalMinutes;
                 const item = document.createElement('div');
                 item.className = 'intervention-item';
-               
-                let timeString = '';
-                if (interv.startAM && interv.endAM) { timeString += `<b>Mattino:</b> ${interv.startAM}-${interv.endAM}`; }
-                if (interv.startPM && interv.endPM) {
-                    if (timeString !== '') timeString += '<br>';
-                    timeString += `<b>Pomeriggio:</b> ${interv.startPM}-${interv.endPM}`;
-                }
-                if (timeString === '') timeString = 'N/D';
-               
-                const formattedBollaDate = interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : 'N/D';
                 const formattedDate = new Date(interv.date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-               
+                
+                let timeDetailsHtml = '';
+                if (interv.startAM && interv.endAM) timeDetailsHtml += `<span>Mattino: ${interv.startAM} - ${interv.endAM}</span><br>`;
+                if (interv.startPM && interv.endPM) timeDetailsHtml += `<span>Pomeriggio: ${interv.startPM} - ${interv.endPM}</span>`;
+
                 item.innerHTML = `
                     <div class="summary-view">
                         <div class="info">
@@ -403,10 +464,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><b>Data Intervento:</b> ${formattedDate}</p>
                         <p><b>Cliente:</b> ${interv.client}</p>
                         <p><b>Indirizzo:</b> ${interv.address || 'N/D'}</p>
-                        <p><b>Orari:</b><br>${timeString}</p>
-                        <p><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
+                        <p><b>Dipendente:</b> ${interv.employeeName || 'N/D'}</p>
+                        <div><b>Orari:</b><br><span style="padding-left:15px;">${timeDetailsHtml}</span></div>
+                        <p style="margin-top: 10px;"><b>Lavoro Svolto:</b><br>${interv.workDone || 'N/D'}</p>
                         <p><b>Materiali Utilizzati:</b><br>${(interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('<br>') : 'Nessuno'}</p>
-                        <p><b>Rif. Bolla:</b> ${interv.bollaRef || 'N/D'} | <b>Data Bolla:</b> ${formattedBollaDate}</p>
+                        <p><b>Rif. Bolla:</b> ${interv.bollaRef || 'N/D'} | <b>Data Bolla:</b> ${interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : 'N/D'}</p>
                         <p><b>Note:</b><br>${interv.notes || 'N/D'}</p>
                         <p><b>Foto:</b><br>${(interv.photos && interv.photos.length > 0) ? `${interv.photos.length} foto allegate` : 'Nessuna'}</p>
                     </div>
@@ -416,72 +478,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         summaryTotalSpan.textContent = `Totale: ${formatMinutes(totalMinutesSummary)}`;
         saveToLocalStorage();
+        updateButtonStates(false);
     };
-    const resetForm = () => {
-        Object.values(allInputs).forEach(input => { if (input && input.id !== 'date' && input.id !== 'employee-name') input.value = ''; });
-        allInputs.date.value = new Date().toISOString().slice(0, 10);
-        interventionIdInput.value = '';
-        setMaterialsData([]);
-        currentPhotos = [];
-        renderPhotoPreviews();
-        formTitle.textContent = 'Nuovo Intervento';
-        addBtn.textContent = 'Aggiungi Rapporto';
-        updateTotals();
-    };
-    addBtn.addEventListener('click', () => {
-        Object.values(allInputs).forEach(field => { if(field) field.classList.remove('error')});
-        const requiredTextFields = [allInputs.employeeName, allInputs.client, allInputs.workDone, allInputs.address];
-        let textIsValid = true;
-        requiredTextFields.forEach(field => { if (field && !field.value.trim()) { field.classList.add('error'); textIsValid = false; } });
-        if (!textIsValid) return showToast('Compila i campi evidenziati!', 'error');
-        const { startAM, endAM, startPM, endPM, date } = allInputs;
-        if ((startAM.value && !endAM.value) || (!startAM.value && endAM.value)) { startAM.classList.add('error'); endAM.classList.add('error'); return showToast("Orario mattino incompleto.", 'error'); }
-        if ((startPM.value && !endPM.value) || (!startPM.value && endPM.value)) { startPM.classList.add('error'); endPM.classList.add('error'); return showToast("Orario pomeriggio incompleto.", 'error'); }
-       
-        const newIntervals = [];
-        if (startAM.value && endAM.value) newIntervals.push({start: startAM.value, end: endAM.value});
-        if (startPM.value && endPM.value) newIntervals.push({start: startPM.value, end: endPM.value});
-        if (newIntervals.length > 1 && newIntervals[0].end > newIntervals[1].start) {
-            allInputs.endAM.classList.add('error'); allInputs.startPM.classList.add('error');
-            return showToast("L'inizio del pomeriggio non può precedere la fine del mattino.", 'error');
-        }
-        let existingIntervals = dailyInterventions
-            .filter(i => i.id.toString() !== interventionIdInput.value && i.date === date.value)
-            .flatMap(i => {
-                const intervals = [];
-                if (i.startAM && i.endAM) intervals.push({start: i.startAM, end: i.endAM, client: i.client});
-                if (i.startPM && i.endPM) intervals.push({start: i.startPM, end: i.endPM, client: i.client});
-                return intervals;
-            });
-        for (const newInt of newIntervals) {
-            for (const oldInt of existingIntervals) {
-                if (newInt.start < oldInt.end && newInt.end > oldInt.start) {
-                    return showToast(`Orario ${newInt.start}-${newInt.end} si sovrappone con l'intervento per ${oldInt.client}.`, 'error', 6000);
-                }
-            }
-        }
 
-        const totalMinutes = calculateMinutes(startAM.value, endAM.value) + calculateMinutes(startPM.value, endPM.value);
-        if (totalMinutes <= 0) return showToast('Inserire almeno un intervallo di ore valido.', 'error');
-        
-        const photosToSave = currentPhotos.map(p => ({ id: p.id, dataUrl: p.dataUrl }));
-        
-        const intervention = {
-            id: interventionIdInput.value ? Number(interventionIdInput.value) : Date.now(),
-            date: allInputs.date.value, client: allInputs.client.value, address: allInputs.address.value,
-            startAM: allInputs.startAM.value, endAM: allInputs.endAM.value,
-            startPM: allInputs.startPM.value, endPM: allInputs.endPM.value,
-            totalHours: formatMinutes(totalMinutes), totalMinutes: totalMinutes,
-            workDone: allInputs.workDone.value, materials: getMaterialsData(), notes: allInputs.notes.value,
-            photos: photosToSave,
-            bollaRef: allInputs.bollaRef.value, bollaDate: allInputs.bollaDate.value
-        };
-        const existingIndex = dailyInterventions.findIndex(i => i.id == intervention.id);
-        if (existingIndex > -1) { dailyInterventions[existingIndex] = intervention; showToast('Intervento modificato!'); }
-        else { dailyInterventions.push(intervention); showToast('Intervento aggiunto!'); }
-        renderInterventions();
-        resetForm();
-    });
     interventionsList.addEventListener('click', (e) => {
         const target = e.target;
         const action = target.dataset.action;
@@ -498,26 +497,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 formTitle.textContent = 'Modifica Intervento';
                 addBtn.textContent = 'Salva Modifiche';
                 interventionIdInput.value = interv.id;
-                allInputs.date.value = interv.date; allInputs.client.value = interv.client; allInputs.address.value = interv.address;
-                allInputs.startAM.value = interv.startAM; allInputs.endAM.value = interv.endAM;
-                allInputs.startPM.value = interv.startPM; allInputs.endPM.value = interv.endPM;
-                allInputs.workDone.value = interv.workDone; setMaterialsData(interv.materials);
+                allInputs.date.value = interv.date; 
+                allInputs.client.value = interv.client; 
+                allInputs.address.value = interv.address;
+                allInputs.startAM.value = interv.startAM; 
+                allInputs.endAM.value = interv.endAM;
+                allInputs.startPM.value = interv.startPM; 
+                allInputs.endPM.value = interv.endPM;
+                allInputs.workDone.value = interv.workDone; 
                 allInputs.notes.value = interv.notes;
-                allInputs.bollaRef.value = interv.bollaRef; allInputs.bollaDate.value = interv.bollaDate;
+                allInputs.employeeName.value = interv.employeeName;
+                allInputs.bollaRef.value = interv.bollaRef;
+                allInputs.bollaDate.value = interv.bollaDate;
+                setMaterialsData(interv.materials);
                 currentPhotos = interv.photos ? [...interv.photos] : [];
                 renderPhotoPreviews();
                 updateTotals();
                 window.scrollTo(0, 0);
+                updateButtonStates(true);
             }
         } else {
             const item = target.closest('.intervention-item');
             if (item) item.classList.toggle('expanded');
         }
     });
+
     const saveToLocalStorage = () => { 
         try {
             localStorage.setItem('dailyInterventions', JSON.stringify(dailyInterventions)); 
-            localStorage.setItem('employeeName', allInputs.employeeName.value); 
+            localStorage.setItem('employeeName', allInputs.employeeName.value);
         } catch (error) {
             console.error("Errore durante il salvataggio nel localStorage:", error);
             showToast('Impossibile salvare i dati, memoria piena?', 'error');
@@ -530,20 +538,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) {
              try { 
                 dailyInterventions = JSON.parse(data); 
-                if (!Array.isArray(dailyInterventions)) {
-                    dailyInterventions = [];
-                }
+                if (!Array.isArray(dailyInterventions)) { dailyInterventions = []; }
              } catch(e) { 
                 console.error("Errore nel caricamento da localStorage:", e);
                 dailyInterventions = []; 
              }
         }
     };
-   
+    
     const generateFiles = async () => {
-        const employeeName = allInputs.employeeName.value.trim();
+        if (dailyInterventions.length === 0) {
+            showToast("Nessun dato valido per generare il report.", "error");
+            return { pdfBlob: null, wb: null, fileNameBase: '' };
+        }
+        const employeeName = allInputs.employeeName.value.trim() || 'Operatore';
         const now = new Date();
-        const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
+        const generationDate = now.toLocaleDateString('it-IT');
+        const generationTime = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit'});
+        const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}`;
         const fileNameBase = `Report_${now.toISOString().slice(0,10)}_${employeeName.replace(/ /g, '_')}_${timeString}`;
        
         const { jsPDF } = window.jspdf;
@@ -551,42 +563,48 @@ document.addEventListener('DOMContentLoaded', () => {
         let yPos = 40;
         const pageHeight = doc.internal.pageSize.height;
         const margin = 40;
-        const addHeader = (date) => {
-            const formattedDateForHeader = new Date(date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            doc.setFontSize(22); doc.setFont(undefined, 'bold');
-            doc.text(`Rapporto di Intervento Giornaliero`, doc.internal.pageSize.width / 2, yPos, { align: 'center' }); yPos += 30;
-            doc.setFontSize(12); doc.setFont(undefined, 'normal');
-            doc.text(`Data: ${formattedDateForHeader}`, margin, yPos);
-            doc.text(`Operatore: ${employeeName}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 25;
-            doc.setLineWidth(1.5); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); yPos += 20;
+        const checkPageBreak = (spaceNeeded) => {
+            if (yPos + spaceNeeded > pageHeight - margin) {
+                doc.addPage(); yPos = margin;
+            }
         };
-        addHeader(dailyInterventions.length > 0 ? dailyInterventions[0].date : new Date().toISOString().slice(0,10));
+
         for (const [index, interv] of dailyInterventions.entries()) {
-            const checkPageBreak = (space) => { if (yPos + space > pageHeight - margin) { doc.addPage(); yPos = margin; addHeader(interv.date); } };
-            checkPageBreak(120);
-            doc.setFontSize(14); doc.setFont(undefined, 'bold');
-            doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos); yPos += 15;
-            doc.setFont(undefined, 'normal');
+            checkPageBreak(150);
+            const formattedDate = new Date(interv.date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            doc.setFontSize(11); doc.setFont(undefined, 'bold');
+            doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos);
+            doc.setFont(undefined, 'normal'); doc.setFontSize(9);
+            doc.text(`Report generato il: ${generationDate} ${generationTime}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' });
+            yPos += 15;
+            doc.setLineWidth(1); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); yPos += 15;
             doc.setFontSize(10);
-            doc.text(`Indirizzo: ${interv.address || 'N/D'}`, margin, yPos); yPos += 20;
-            let timeString = (interv.startAM && interv.endAM ? `Mattino: ${interv.startAM}-${interv.endAM}` : '') + ((interv.startAM && interv.endAM && interv.startPM && interv.endPM) ? ' | ' : '') + (interv.startPM && interv.endPM ? `Pomeriggio: ${interv.startPM}-${interv.endPM}` : '');
-            doc.text(`Orari: ${timeString || 'N/D'}`, margin, yPos);
-            doc.text(`Ore Totali: ${interv.totalHours}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' }); yPos += 20;
+            doc.text(`Data Intervento: ${formattedDate}`, margin, yPos); yPos += 12;
+            doc.text(`Indirizzo: ${interv.address || 'N/D'}`, margin, yPos); yPos += 12;
+            doc.text(`Dipendente: ${interv.employeeName || 'N/D'}`, margin, yPos); yPos += 20;
+
             const addSection = (title, content) => {
                 if (content && content.trim() !== '') {
+                    checkPageBreak(24);
                     doc.setFont(undefined, 'bold'); doc.text(title, margin, yPos); yPos += 12;
                     doc.setFont(undefined, 'normal');
                     const lines = doc.splitTextToSize(content, doc.internal.pageSize.width - margin * 2);
-                    checkPageBreak(lines.length * 12 + 20);
+                    checkPageBreak(lines.length * 12 + 10);
                     doc.text(lines, margin, yPos); yPos += (lines.length * 12) + 10;
                 }
             };
+
+            let timeDetails = '';
+            if(interv.startAM && interv.endAM) timeDetails += `Mattino: ${interv.startAM} - ${interv.endAM} | `;
+            if(interv.startPM && interv.endPM) timeDetails += `Pomeriggio: ${interv.startPM} - ${interv.endPM}`;
+            addSection('Orari:', `${timeDetails} (Totale: ${interv.totalHours})`);
             addSection('Lavoro Svolto:', interv.workDone);
             const materialsText = (interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('\n') : '';
             addSection('Materiali Utilizzati:', materialsText);
-            const formattedBollaDate = interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : '';
-            addSection('Riferimenti Bolla:', interv.bollaRef ? `${interv.bollaRef} del ${formattedBollaDate}` : '');
+            const bollaText = interv.bollaRef ? `${interv.bollaRef} del ${interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : 'N/D'}` : '';
+            addSection('Riferimenti Bolla:', bollaText);
             addSection('Note Aggiuntive:', interv.notes);
+            
             if (interv.photos && interv.photos.length > 0) {
                 checkPageBreak(40);
                 doc.setFont(undefined, 'bold'); doc.text('Foto Lavori:', margin, yPos); yPos += 15;
@@ -599,62 +617,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 yPos += photoSize + 20;
             }
-            if (index < dailyInterventions.length - 1) { doc.setLineDashPattern([5, 5], 0); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); doc.setLineDashPattern([], 0); yPos += 20; }
+            if (index < dailyInterventions.length - 1) { yPos += 10; checkPageBreak(10); doc.setLineDashPattern([5, 5], 0); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); doc.setLineDashPattern([], 0); yPos += 20;}
         }
         const pdfBlob = doc.output('blob');
-       
+        
         const excelData = [];
-        let lastClient = null;
-        const sortedInterventions = [...dailyInterventions].sort((a,b) => `${a.date}-${a.client}`.localeCompare(`${b.date}-${b.client}`));
-       
-        sortedInterventions.forEach(i => {
-            if (lastClient !== null && i.client !== lastClient) {
-                excelData.push({});
-            }
-            lastClient = i.client;
-
-            const [y, m, d] = i.date.split('-');
+        let lastClientDate = '';
+        dailyInterventions.forEach(interv => {
+            const clientDate = `${interv.date}-${interv.client}`;
+            if (lastClientDate !== '' && clientDate !== lastClientDate) excelData.push({});
+            lastClientDate = clientDate;
+            const [y, m, d] = interv.date.split('-');
             const formattedDate = `${d}-${m}-${y}`;
-            const materials = i.materials || [];
             const timeSlots = [];
-            if (i.startAM && i.endAM) { timeSlots.push({ start: i.startAM, end: i.endAM, duration: formatMinutes(calculateMinutes(i.startAM, i.endAM)) }); }
-            if (i.startPM && i.endPM) { timeSlots.push({ start: i.startPM, end: i.endPM, duration: formatMinutes(calculateMinutes(i.startPM, i.endPM)) }); }
-
-            const numRows = Math.max(timeSlots.length, materials.length, 1);
-            const interventionRows = [];
-
-            for (let j = 0; j < numRows; j++) {
+            if (interv.startAM && interv.endAM) timeSlots.push({ start: interv.startAM, end: interv.endAM, duration: formatMinutes(calculateMinutes(interv.startAM, interv.endAM)) });
+            if (interv.startPM && interv.endPM) timeSlots.push({ start: interv.startPM, end: interv.endPM, duration: formatMinutes(calculateMinutes(interv.startPM, interv.endPM)) });
+            
+            const maxRows = Math.max(1, timeSlots.length, interv.materials.length);
+            for (let i = 0; i < maxRows; i++) {
                 const rowData = {};
-                if (j === 0) {
-                    rowData['Data'] = formattedDate; rowData['Cliente'] = i.client; rowData['Indirizzo'] = i.address;
-                    rowData['Dipendente'] = employeeName; rowData['Lavoro Svolto'] = i.workDone;
+                if (i === 0) {
+                    rowData['Data'] = formattedDate;
+                    rowData['Cliente'] = interv.client;
+                    rowData['Indirizzo'] = interv.address;
+                    rowData['Dipendente'] = interv.employeeName;
+                    rowData['Lavoro Svolto'] = interv.workDone;
                 }
-                rowData['Ora Inizio'] = timeSlots[j] ? timeSlots[j].start : '';
-                rowData['Ora Fine'] = timeSlots[j] ? timeSlots[j].end : '';
-                rowData['Durata'] = timeSlots[j] ? timeSlots[j].duration : '';
-                rowData['Materiale'] = materials[j] ? materials[j].desc : '';
-                rowData['Q.ta'] = materials[j] ? materials[j].qty : '';
-                rowData['UM'] = materials[j] ? materials[j].unit : '';
-                interventionRows.push(rowData);
+                if (timeSlots[i]) {
+                    rowData['Ora Inizio'] = timeSlots[i].start;
+                    rowData['Ora Fine'] = timeSlots[i].end;
+                    rowData['Durata'] = timeSlots[i].duration;
+                }
+                if (interv.materials[i]) {
+                    rowData['Materiale'] = interv.materials[i].desc;
+                    rowData['Q.tà'] = interv.materials[i].qty;
+                    rowData['UM'] = interv.materials[i].unit;
+                }
+                if (i === maxRows - 1) {
+                    rowData['Rif. Bolla'] = interv.bollaRef;
+                    rowData['Data Bolla'] = interv.bollaDate;
+                    rowData['Note'] = interv.notes;
+                }
+                excelData.push(rowData);
             }
-            if (interventionRows.length === 0) {
-                 interventionRows.push({'Data': formattedDate, 'Cliente': i.client, 'Indirizzo': i.address, 'Dipendente': employeeName, 'Lavoro Svolto': i.workDone, 'Durata': i.totalHours });
-            }
-
-            const lastRow = interventionRows[interventionRows.length - 1];
-            lastRow['Rif. Bolla'] = i.bollaRef || '';
-            lastRow['Data Bolla'] = i.bollaDate || '';
-            lastRow['Note'] = i.notes || '';
-            excelData.push(...interventionRows);
         });
-
-        const headers = ['Data', 'Cliente', 'Indirizzo', 'Dipendente', 'Ora Inizio', 'Ora Fine', 'Durata', 'Lavoro Svolto', 'Materiale', 'Q.ta', 'UM', 'Rif. Bolla', 'Data Bolla', 'Note'];
+        const headers = ['Data', 'Cliente', 'Indirizzo', 'Dipendente', 'Ora Inizio', 'Ora Fine', 'Durata', 'Lavoro Svolto', 'Materiale', 'Q.tà', 'UM', 'Rif. Bolla', 'Data Bolla', 'Note'];
         const ws = XLSX.utils.json_to_sheet(excelData, {header: headers});
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Interventi");
         return { pdfBlob, wb, fileNameBase };
     };
-   
+    
     saveReportBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da salvare.', 'error');
         if (!allInputs.employeeName.value.trim()) {
@@ -662,12 +675,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return showToast('Inserisci il tuo nome per salvare il report.', 'error');
         }
         showToast('Preparazione file in corso...', 'info');
-       
         const { wb, fileNameBase, pdfBlob } = await generateFiles();
+        if(!pdfBlob || !wb) return;
         generatedPdfBlob = pdfBlob;
         generatedWb = wb;
         generatedFileNameBase = fileNameBase;
-       
         showToast('File pronti per il download!', 'success');
         saveModal.style.display = 'flex';
     });
@@ -679,22 +691,25 @@ document.addEventListener('DOMContentLoaded', () => {
             allInputs.employeeName.classList.add('error');
             return showToast('Inserisci il tuo nome per inviare.', 'error');
         }
-        showToast('Apro l\'app di posta...', 'info');
-        const reportDate = dailyInterventions.length > 0 ? new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT') : new Date().toLocaleDateString('it-IT');
-        const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
-        const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\n(I file sono stati salvati nella cartella Download).\n\nBuona giornata.`;
-        const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
-        const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        window.location.href = mailtoLink;
+        const confirmationMessage = "Stai per aprire il programma di posta.\n\nRicordati di allegare manualmente i file PDF ed Excel che hai salvato nella cartella Download.\n\nProcedere?";
+        if (confirm(confirmationMessage)) {
+            showToast('Apro l\'app di posta...', 'info');
+            const reportDate = dailyInterventions.length > 0 ? new Date(dailyInterventions[0].date + 'T00:00:00').toLocaleDateString('it-IT') : new Date().toLocaleDateString('it-IT');
+            const subject = `Report Interventi - ${reportDate} - ${employeeName}`;
+            const body = `Buongiorno,\n\nallego il report interventi del ${reportDate} compilato da ${employeeName}.\n\nBuona giornata.`;
+            const targetEmail = 'cominellis57@gmail.com'; // <--- CAMBIA QUI L'EMAIL
+            const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+        }
     });
-   
+
     clearAllBtn.addEventListener('click', () => {
         if (dailyInterventions.length === 0) return;
         const confirmationText = "ATTENZIONE! Stai per eliminare TUTTI gli interventi salvati. Assicurati di aver prima scaricato e inviato il report via email. L'operazione non è reversibile. Confermi?";
         if (confirm(confirmationText)) {
             dailyInterventions = [];
             renderInterventions();
-            saveToLocalStorage();
+            localStorage.removeItem('dailyInterventions');
             showToast('Elenco interventi pulito!', 'success');
         }
     });
@@ -702,12 +717,8 @@ document.addEventListener('DOMContentLoaded', () => {
     modalSavePdfBtn.addEventListener('click', () => {
         if (!generatedPdfBlob) return showToast('Errore: PDF non generato.', 'error');
         const pdfUrl = URL.createObjectURL(generatedPdfBlob);
-        const a = document.createElement('a');
-        a.href = pdfUrl;
-        a.download = `${generatedFileNameBase}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        const a = document.createElement('a'); a.href = pdfUrl; a.download = `${generatedFileNameBase}.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
         showToast('PDF salvato nei Download!', 'success');
     });
@@ -719,10 +730,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     modalCloseSaveBtn.addEventListener('click', () => {
-        saveModal.style.display = 'none';
-        generatedPdfBlob = null;
-        generatedWb = null;
-        generatedFileNameBase = '';
+        saveModal.style.display = 'none'; generatedPdfBlob = null;
+        generatedWb = null; generatedFileNameBase = '';
     });
 
     let deferredPrompt;
@@ -735,8 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
+        e.preventDefault(); deferredPrompt = e;
         installButton.style.display = 'block';
     });
 
@@ -744,21 +752,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                installButton.style.display = 'none';
-            }
+            if (outcome === 'accepted') { installButton.style.display = 'none'; }
             deferredPrompt = null;
         } else {
             installModal.style.display = 'flex';
         }
     });
     if(closeModalBtn) closeModalBtn.addEventListener('click', () => { installModal.style.display = 'none'; });
+    
+    formCard.addEventListener('input', () => {
+        if (addBtn.textContent !== 'Salva Modifiche') {
+            updateButtonStates(true);
+        }
+    });
 
-    // --- Sequenza di avvio ---
-    allInputs.date.value = new Date().toISOString().slice(0, 10);
     loadFromLocalStorage();
     renderInterventions();
-    addMaterialRow();
+    resetForm();
 });
 </script>
 </body>
