@@ -1,11 +1,11 @@
 {
-  "name": "Report Interventi",
-  "short_name": "Report Ore",
+  "name": "Report Interventi Singolo",
+  "short_name": "Ore1Dip",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#f8f9fa",
+  "background_color": "#ffffff",
   "theme_color": "#007bff",
-  "description": "App per la gestione dei report di intervento giornalieri.",
+  "description": "App per la compilazione di report di intervento.",
   "icons": [
     {
       "src": "icon.svg",
