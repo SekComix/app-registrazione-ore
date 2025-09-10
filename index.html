@@ -546,128 +546,138 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    const generateFiles = async () => {
-        if (dailyInterventions.length === 0) {
-            showToast("Nessun dato valido per generare il report.", "error");
-            return { pdfBlob: null, wb: null, fileNameBase: '' };
+   const generateFiles = async () => {
+    if (dailyInterventions.length === 0) {
+        showToast("Nessun dato valido per generare il report.", "error");
+        return { pdfBlob: null, wb: null, fileNameBase: '' };
+    }
+    const employeeName = allInputs.employeeName.value.trim() || 'Operatore';
+    const now = new Date();
+    const generationDate = now.toLocaleDateString('it-IT');
+    const generationTime = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit'});
+    const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}`;
+    const fileNameBase = `Report_${now.toISOString().slice(0,10)}_${employeeName.replace(/ /g, '_')}_${timeString}`;
+   
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    let yPos = 40;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 40;
+    const checkPageBreak = (spaceNeeded) => {
+        if (yPos + spaceNeeded > pageHeight - margin) {
+            doc.addPage(); yPos = margin;
         }
-        const employeeName = allInputs.employeeName.value.trim() || 'Operatore';
-        const now = new Date();
-        const generationDate = now.toLocaleDateString('it-IT');
-        const generationTime = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit'});
-        const timeString = `${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}`;
-        const fileNameBase = `Report_${now.toISOString().slice(0,10)}_${employeeName.replace(/ /g, '_')}_${timeString}`;
-       
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-        let yPos = 40;
-        const pageHeight = doc.internal.pageSize.height;
-        const margin = 40;
-        const checkPageBreak = (spaceNeeded) => {
-            if (yPos + spaceNeeded > pageHeight - margin) {
-                doc.addPage(); yPos = margin;
+    };
+
+    for (const [index, interv] of dailyInterventions.entries()) {
+        checkPageBreak(150);
+        const formattedDate = new Date(interv.date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        doc.setFontSize(11); doc.setFont(undefined, 'bold');
+        doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos);
+        doc.setFont(undefined, 'normal'); doc.setFontSize(9);
+        doc.text(`Report generato il: ${generationDate} ${generationTime}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' });
+        yPos += 15;
+        doc.setLineWidth(1); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); yPos += 15;
+        doc.setFontSize(10);
+        doc.text(`Data Intervento: ${formattedDate}`, margin, yPos); yPos += 12;
+        doc.text(`Indirizzo: ${interv.address || 'N/D'}`, margin, yPos); yPos += 12;
+        doc.text(`Dipendente: ${interv.employeeName || 'N/D'}`, margin, yPos); yPos += 20;
+
+        const addSection = (title, content) => {
+            if (content && content.trim() !== '') {
+                checkPageBreak(24);
+                doc.setFont(undefined, 'bold'); doc.text(title, margin, yPos); yPos += 12;
+                doc.setFont(undefined, 'normal');
+                const lines = doc.splitTextToSize(content, doc.internal.pageSize.width - margin * 2);
+                checkPageBreak(lines.length * 12 + 10);
+                doc.text(lines, margin, yPos); yPos += (lines.length * 12) + 10;
             }
         };
 
-        for (const [index, interv] of dailyInterventions.entries()) {
-            checkPageBreak(150);
-            const formattedDate = new Date(interv.date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            doc.setFontSize(11); doc.setFont(undefined, 'bold');
-            doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos);
-            doc.setFont(undefined, 'normal'); doc.setFontSize(9);
-            doc.text(`Report generato il: ${generationDate} ${generationTime}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' });
-            yPos += 15;
-            doc.setLineWidth(1); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); yPos += 15;
-            doc.setFontSize(10);
-            doc.text(`Data Intervento: ${formattedDate}`, margin, yPos); yPos += 12;
-            doc.text(`Indirizzo: ${interv.address || 'N/D'}`, margin, yPos); yPos += 12;
-            doc.text(`Dipendente: ${interv.employeeName || 'N/D'}`, margin, yPos); yPos += 20;
-
-            const addSection = (title, content) => {
-                if (content && content.trim() !== '') {
-                    checkPageBreak(24);
-                    doc.setFont(undefined, 'bold'); doc.text(title, margin, yPos); yPos += 12;
-                    doc.setFont(undefined, 'normal');
-                    const lines = doc.splitTextToSize(content, doc.internal.pageSize.width - margin * 2);
-                    checkPageBreak(lines.length * 12 + 10);
-                    doc.text(lines, margin, yPos); yPos += (lines.length * 12) + 10;
-                }
-            };
-
-            let timeDetails = '';
-            if(interv.startAM && interv.endAM) timeDetails += `Mattino: ${interv.startAM} - ${interv.endAM} | `;
-            if(interv.startPM && interv.endPM) timeDetails += `Pomeriggio: ${interv.startPM} - ${interv.endPM}`;
-            addSection('Orari:', `${timeDetails} (Totale: ${interv.totalHours})`);
-            addSection('Lavoro Svolto:', interv.workDone);
-            const materialsText = (interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('\n') : '';
-            addSection('Materiali Utilizzati:', materialsText);
-            const bollaText = interv.bollaRef ? `${interv.bollaRef} del ${interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : 'N/D'}` : '';
-            addSection('Riferimenti Bolla:', bollaText);
-            addSection('Note Aggiuntive:', interv.notes);
-            
-            if (interv.photos && interv.photos.length > 0) {
-                checkPageBreak(40);
-                doc.setFont(undefined, 'bold'); doc.text('Foto Lavori:', margin, yPos); yPos += 15;
-                const photoSize = 120; let xPos = margin;
-                for (const photo of interv.photos) {
-                    if (xPos + photoSize > doc.internal.pageSize.width - margin) { xPos = margin; yPos += photoSize + 10; }
-                    checkPageBreak(photoSize + 20);
-                    try { doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, photoSize, photoSize); } catch (e) { console.error("Errore immagine PDF:", e); doc.text('[Immagine non supportata]', xPos, yPos + 20); }
-                    xPos += photoSize + 10;
-                }
-                yPos += photoSize + 20;
-            }
-            if (index < dailyInterventions.length - 1) { yPos += 10; checkPageBreak(10); doc.setLineDashPattern([5, 5], 0); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); doc.setLineDashPattern([], 0); yPos += 20;}
-        }
-        const pdfBlob = doc.output('blob');
+        let timeDetails = '';
+        if(interv.startAM && interv.endAM) timeDetails += `Mattino: ${interv.startAM} - ${interv.endAM} | `;
+        if(interv.startPM && interv.endPM) timeDetails += `Pomeriggio: ${interv.startPM} - ${interv.endPM}`;
+        addSection('Orari:', `${timeDetails} (Totale: ${interv.totalHours})`);
+        addSection('Lavoro Svolto:', interv.workDone);
+        const materialsText = (interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('\n') : '';
+        addSection('Materiali Utilizzati:', materialsText);
+        const bollaText = interv.bollaRef ? `${interv.bollaRef} del ${interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : 'N/D'}` : '';
+        addSection('Riferimenti Bolla:', bollaText);
+        addSection('Note Aggiuntive:', interv.notes);
         
-        const excelData = [];
-        let lastClientDate = '';
-        dailyInterventions.forEach(interv => {
-            const clientDate = `${interv.date}-${interv.client}`;
-            if (lastClientDate !== '' && clientDate !== lastClientDate) excelData.push({});
-            lastClientDate = clientDate;
-            const [y, m, d] = interv.date.split('-');
-            const formattedDate = `${d}-${m}-${y}`;
-            const timeSlots = [];
-            if (interv.startAM && interv.endAM) timeSlots.push({ start: interv.startAM, end: interv.endAM, duration: formatMinutes(calculateMinutes(interv.startAM, interv.endAM)) });
-            if (interv.startPM && interv.endPM) timeSlots.push({ start: interv.startPM, end: interv.endPM, duration: formatMinutes(calculateMinutes(interv.startPM, interv.endPM)) });
-            
-            const maxRows = Math.max(1, timeSlots.length, interv.materials.length);
-            for (let i = 0; i < maxRows; i++) {
-                const rowData = {};
-                if (i === 0) {
-                    rowData['Data'] = formattedDate;
-                    rowData['Cliente'] = interv.client;
-                    rowData['Indirizzo'] = interv.address;
-                    rowData['Dipendente'] = interv.employeeName;
-                    rowData['Lavoro Svolto'] = interv.workDone;
-                }
-                if (timeSlots[i]) {
-                    rowData['Ora Inizio'] = timeSlots[i].start;
-                    rowData['Ora Fine'] = timeSlots[i].end;
-                    rowData['Durata'] = timeSlots[i].duration;
-                }
-                if (interv.materials[i]) {
-                    rowData['Materiale'] = interv.materials[i].desc;
-                    rowData['Q.tà'] = interv.materials[i].qty;
-                    rowData['UM'] = interv.materials[i].unit;
-                }
-                if (i === maxRows - 1) {
-                    rowData['Rif. Bolla'] = interv.bollaRef;
-                    rowData['Data Bolla'] = interv.bollaDate;
-                    rowData['Note'] = interv.notes;
-                }
-                excelData.push(rowData);
+        if (interv.photos && interv.photos.length > 0) {
+            checkPageBreak(40);
+            doc.setFont(undefined, 'bold'); doc.text('Foto Lavori:', margin, yPos); yPos += 15;
+            const photoSize = 120; let xPos = margin;
+            for (const photo of interv.photos) {
+                if (xPos + photoSize > doc.internal.pageSize.width - margin) { xPos = margin; yPos += photoSize + 10; }
+                checkPageBreak(photoSize + 20);
+                try { doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, photoSize, photoSize); } catch (e) { console.error("Errore immagine PDF:", e); doc.text('[Immagine non supportata]', xPos, yPos + 20); }
+                xPos += photoSize + 10;
             }
-        });
-        const headers = ['Data', 'Cliente', 'Indirizzo', 'Dipendente', 'Ora Inizio', 'Ora Fine', 'Durata', 'Lavoro Svolto', 'Materiale', 'Q.tà', 'UM', 'Rif. Bolla', 'Data Bolla', 'Note'];
-        const ws = XLSX.utils.json_to_sheet(excelData, {header: headers});
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Interventi");
-        return { pdfBlob, wb, fileNameBase };
-    };
+            yPos += photoSize + 20;
+        }
+        if (index < dailyInterventions.length - 1) { yPos += 10; checkPageBreak(10); doc.setLineDashPattern([5, 5], 0); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); doc.setLineDashPattern([], 0); yPos += 20;}
+    }
+    const pdfBlob = doc.output('blob');
     
+    const excelData = [];
+    let lastClientDate = '';
+    dailyInterventions.forEach(interv => {
+        const clientDate = `${interv.date}-${interv.client}`;
+        if (lastClientDate !== '' && clientDate !== lastClientDate) excelData.push({});
+        lastClientDate = clientDate;
+        const [y, m, d] = interv.date.split('-');
+        const formattedDate = `${d}-${m}-${y}`;
+
+        const timeSlots = [];
+        if (interv.startAM && interv.endAM) timeSlots.push({ start: interv.startAM, end: interv.endAM, duration: formatMinutes(calculateMinutes(interv.startAM, interv.endAM)) });
+        if (interv.startPM && interv.endPM) timeSlots.push({ start: interv.startPM, end: interv.endPM, duration: formatMinutes(calculateMinutes(interv.startPM, interv.endPM)) });
+
+        const timeRowsNeeded = timeSlots.length > 0 ? timeSlots.length : 1;
+        
+        for (let i = 0; i < timeRowsNeeded; i++) {
+            const rowData = {};
+            if (i === 0) {
+                rowData['Data'] = formattedDate;
+                rowData['Cliente'] = interv.client;
+                rowData['Indirizzo'] = interv.address;
+                rowData['Dipendente'] = interv.employeeName;
+                rowData['Lavoro Svolto'] = interv.workDone;
+            }
+            if (timeSlots[i]) {
+                rowData['Ora Inizio'] = timeSlots[i].start;
+                rowData['Ora Fine'] = timeSlots[i].end;
+                rowData['Durata'] = timeSlots[i].duration;
+            }
+            excelData.push(rowData);
+        }
+        
+        interv.materials.forEach(material => {
+            const materialRow = {
+                'Materiale': material.desc,
+                'Q.tà': material.qty,
+                'UM': material.unit
+            };
+            excelData.push(materialRow);
+        });
+
+        if (interv.bollaRef || interv.bollaDate || interv.notes) {
+            const lastRow = {
+                'Rif. Bolla': interv.bollaRef,
+                'Data Bolla': interv.bollaDate,
+                'Note': interv.notes
+            };
+            excelData.push(lastRow);
+        }
+    });
+
+    const headers = ['Data', 'Cliente', 'Indirizzo', 'Dipendente', 'Ora Inizio', 'Ora Fine', 'Durata', 'Lavoro Svolto', 'Materiale', 'Q.tà', 'UM', 'Rif. Bolla', 'Data Bolla', 'Note'];
+    const ws = XLSX.utils.json_to_sheet(excelData, {header: headers});
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Interventi");
+    return { pdfBlob, wb, fileNameBase };
+};    
     saveReportBtn.addEventListener('click', async () => {
         if (dailyInterventions.length === 0) return showToast('Nessun intervento da salvare.', 'error');
         if (!allInputs.employeeName.value.trim()) {
