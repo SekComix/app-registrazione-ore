@@ -17,5 +17,5 @@
   </g>
   
   <!-- Testo abbassato per centrarlo -->
-  <text x="50" y="65" font-family="'Brush Script MT', cursive" font-size="34" text-anchor="middle" fill="#000000">AM</text>
+  <text x="50" y="65" font-family="'Brush Script MT', cursive" font-size="25" text-anchor="middle" fill="#000000">AM</text>
 </svg>
