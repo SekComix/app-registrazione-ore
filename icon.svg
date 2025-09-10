@@ -4,5 +4,5 @@
   <rect x="38.5" y="72.5" width="23" height="10" fill="#B0BEC5"/>
   <rect x="36" y="77.5" width="28" height="2.5" fill="#90A4AE"/>
   <rect x="36" y="82.5" width="28" height="2.5" fill="#90A4AE"/>
-  <text x="50" y="47" font-family="'Brush Script MT', cursive" font-size="34" text-anchor="middle" fill="#000000">AM</text>
+  <text x="50" y="47" font-family="'Brush Script MT', cursive" font-size="25" text-anchor="middle" fill="#000000">AM</text>
 </svg>
