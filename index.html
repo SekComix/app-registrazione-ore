@@ -547,8 +547,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
   const generateFiles = async () => {
-    // ... (tutta la parte iniziale e la generazione PDF resta invariata)
-    // ... (ti fornirò il blocco completo per sicurezza)
     if (dailyInterventions.length === 0) {
         showToast("Nessun dato valido per generare il report.", "error");
         return { pdfBlob: null, wb: null, fileNameBase: '' };
@@ -562,9 +560,66 @@ document.addEventListener('DOMContentLoaded', () => {
    
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    // ... (tutta la logica PDF resta la stessa di prima) ...
+    let yPos = 40;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 40;
+    const checkPageBreak = (spaceNeeded) => {
+        if (yPos + spaceNeeded > pageHeight - margin) {
+            doc.addPage(); yPos = margin;
+        }
+    };
 
-    const pdfBlob = doc.output('blob'); // Supponiamo che il PDF sia stato generato qui
+    for (const [index, interv] of dailyInterventions.entries()) {
+        checkPageBreak(150);
+        const formattedDate = new Date(interv.date + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        doc.setFontSize(11); doc.setFont(undefined, 'bold');
+        doc.text(`Intervento #${index + 1} - Cliente: ${interv.client}`, margin, yPos);
+        doc.setFont(undefined, 'normal'); doc.setFontSize(9);
+        doc.text(`Report generato il: ${generationDate} ${generationTime}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' });
+        yPos += 15;
+        doc.setLineWidth(1); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); yPos += 15;
+        doc.setFontSize(10);
+        doc.text(`Data Intervento: ${formattedDate}`, margin, yPos); yPos += 12;
+        doc.text(`Indirizzo: ${interv.address || 'N/D'}`, margin, yPos); yPos += 12;
+        doc.text(`Dipendente: ${interv.employeeName || 'N/D'}`, margin, yPos); yPos += 20;
+
+        const addSection = (title, content) => {
+            if (content && content.trim() !== '') {
+                checkPageBreak(24);
+                doc.setFont(undefined, 'bold'); doc.text(title, margin, yPos); yPos += 12;
+                doc.setFont(undefined, 'normal');
+                const lines = doc.splitTextToSize(content, doc.internal.pageSize.width - margin * 2);
+                checkPageBreak(lines.length * 12 + 10);
+                doc.text(lines, margin, yPos); yPos += (lines.length * 12) + 10;
+            }
+        };
+
+        let timeDetails = '';
+        if(interv.startAM && interv.endAM) timeDetails += `Mattino: ${interv.startAM} - ${interv.endAM} | `;
+        if(interv.startPM && interv.endPM) timeDetails += `Pomeriggio: ${interv.startPM} - ${interv.endPM}`;
+        addSection('Orari:', `${timeDetails} (Totale: ${interv.totalHours})`);
+        addSection('Lavoro Svolto:', interv.workDone);
+        const materialsText = (interv.materials && interv.materials.length > 0) ? interv.materials.map(m => `- ${m.qty} ${m.unit} x ${m.desc}`).join('\n') : '';
+        addSection('Materiali Utilizzati:', materialsText);
+        const bollaText = interv.bollaRef ? `${interv.bollaRef} del ${interv.bollaDate ? new Date(interv.bollaDate + 'T00:00:00').toLocaleDateString('it-IT') : 'N/D'}` : '';
+        addSection('Riferimenti Bolla:', bollaText);
+        addSection('Note Aggiuntive:', interv.notes);
+        
+        if (interv.photos && interv.photos.length > 0) {
+            checkPageBreak(40);
+            doc.setFont(undefined, 'bold'); doc.text('Foto Lavori:', margin, yPos); yPos += 15;
+            const photoSize = 120; let xPos = margin;
+            for (const photo of interv.photos) {
+                if (xPos + photoSize > doc.internal.pageSize.width - margin) { xPos = margin; yPos += photoSize + 10; }
+                checkPageBreak(photoSize + 20);
+                try { doc.addImage(photo.dataUrl, 'JPEG', xPos, yPos, photoSize, photoSize); } catch (e) { console.error("Errore immagine PDF:", e); doc.text('[Immagine non supportata]', xPos, yPos + 20); }
+                xPos += photoSize + 10;
+            }
+            yPos += photoSize + 20;
+        }
+        if (index < dailyInterventions.length - 1) { yPos += 10; checkPageBreak(10); doc.setLineDashPattern([5, 5], 0); doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos); doc.setLineDashPattern([], 0); yPos += 20;}
+    }
+    const pdfBlob = doc.output('blob');
     
     const excelData = [];
     let lastClientDate = '';
@@ -574,13 +629,10 @@ document.addEventListener('DOMContentLoaded', () => {
         lastClientDate = clientDate;
         const [y, m, d] = interv.date.split('-');
         const formattedDate = `${d}-${m}-${y}`;
-
         const timeSlots = [];
         if (interv.startAM && interv.endAM) timeSlots.push({ start: interv.startAM, end: interv.endAM, duration: formatMinutes(calculateMinutes(interv.startAM, interv.endAM)) });
         if (interv.startPM && interv.endPM) timeSlots.push({ start: interv.startPM, end: interv.endPM, duration: formatMinutes(calculateMinutes(interv.startPM, interv.endPM)) });
-
         const timeRowsNeeded = timeSlots.length > 0 ? timeSlots.length : 1;
-        
         for (let i = 0; i < timeRowsNeeded; i++) {
             const rowData = {};
             if (i === 0) {
@@ -597,7 +649,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             excelData.push(rowData);
         }
-        
         interv.materials.forEach(material => {
             const materialRow = {
                 'Materiale': material.desc,
@@ -606,8 +657,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             excelData.push(materialRow);
         });
-
-        // CORREZIONE: Aggiunge bolla e note all'ultima riga esistente
         if (excelData.length > 0) {
             const lastRow = excelData[excelData.length - 1];
             lastRow['Rif. Bolla'] = interv.bollaRef;
@@ -615,7 +664,6 @@ document.addEventListener('DOMContentLoaded', () => {
             lastRow['Note'] = interv.notes;
         }
     });
-
     const headers = ['Data', 'Cliente', 'Indirizzo', 'Dipendente', 'Ora Inizio', 'Ora Fine', 'Durata', 'Lavoro Svolto', 'Materiale', 'Q.tà', 'UM', 'Rif. Bolla', 'Data Bolla', 'Note'];
     const ws = XLSX.utils.json_to_sheet(excelData, {header: headers});
     const wb = XLSX.utils.book_new();
