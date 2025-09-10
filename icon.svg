@@ -9,17 +9,18 @@
     <path d="M168 238L158 218" stroke="#FFD700" stroke-width="8" stroke-linecap="round"/>
     <path d="M128 248V228" stroke="#FFD700" stroke-width="8" stroke-linecap="round"/>
 
-    <!-- Corpo Lampadina (Giallo) -->
-    <path d="M168.64,156.13C178.87,141.43,184.54,124.28,184.54,106C184.54,62.5,159.14,27.1,128,27.1S71.46,62.5,71.46,106c0,18.28,5.67,35.43,15.9,50.13" fill="#FFFF00" transform="rotate(180, 128, 106)"/>
-    <path d="M168.64,156.13C178.87,141.43,184.54,124.28,184.54,106C184.54,62.5,159.14,27.1,128,27.1S71.46,62.5,71.46,106c0,18.28,5.67,35.43,15.9,50.13" stroke="black" stroke-width="5" transform="rotate(180, 128, 106)"/>
-
-    <!-- Filettatura (Grigio) -->
+    <!-- Contenitore Ruotato per la Lampadina -->
     <g transform="rotate(180, 128, 106)">
-        <path d="M127.81,228.8h-4.34c-1.38,0-2.5-1.12-2.5-2.5v-10.85h9.34v10.85c0,1.38-1.12,2.5-2.5,2.5Z" fill="#C0C0C0" stroke="black" stroke-width="2"/>
-        <path d="M138.65,201.2h-26.63c-1.38,0-2.5-1.12-2.5-2.5v-10.85h31.63v10.85c0,1.38-1.12,2.5-2.5,2.5Z" fill="#C0C0C0" stroke="black" stroke-width="2"/>
-        <path d="M138.65,173.6h-26.63c-1.38,0-2.5-1.12-2.5-2.5v-10.85h31.63v10.85c0,1.38-1.12,2.5-2.5,2.5Z" fill="#C0C0C0" stroke="black" stroke-width="2"/>
+        <!-- Bulbo Lampadina (Giallo) -->
+        <path d="M188.4 126.31C188.4 86.84 161.73 55 128 55C94.27 55 67.6 86.84 67.6 126.31C67.6 154.54 84.87 186.53 105.74 200.2H150.26C171.13 186.53 188.4 154.54 188.4 126.31Z" fill="#FFFF00" stroke="black" stroke-width="5"/>
+
+        <!-- Filettatura (Grigio) -->
+        <path d="M150.8 198H105.2C101.22 198 98 201.22 98 205.2V215.2C98 219.22 101.22 222.4 105.2 222.4H150.8C154.78 222.4 158 219.22 158 215.2V205.2C158 201.22 154.78 198 150.8 198Z" fill="#C0C0C0" stroke="black" stroke-width="2"/>
+        <line x1="98" y1="205" x2="158" y2="205" stroke="black" stroke-width="4"/>
+        <line x1="98" y1="213" x2="158" y2="213" stroke="black" stroke-width="4"/>
+        <line x1="120" y1="222" x2="136" y2="222" stroke="black" stroke-width="4" stroke-linecap="round"/>
     </g>
 
-    <!-- Testo "AM" in Corsivo, centrato meglio -->
+    <!-- Testo "AM" in Corsivo, ruotato e centrato -->
     <text x="128" y="145" font-family="'Brush Script MT', cursive" font-size="72" fill="#007bff" text-anchor="middle" dominant-baseline="central">AM</text>
 </svg>
